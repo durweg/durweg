@@ -2,7 +2,7 @@
 
 # Durweg
 
-[💻 Requirements](#-system-requirements) · [🧭 Install](#-install) · [📅 Every day](#-every-day) · [🚀 Example](#-example-write-down-your-method) · [🔐 Public and private](#-public-and-private-workflows) · [🙋 I want to](#-i-want-to-) · [🛠️ Common problems](#%EF%B8%8F-common-problems) · **[📚 Workflows you can install](https://github.com/musetee/durweg-workflows)**
+[✨ Features](#-features) · [💻 Requirements](#-system-requirements) · [🧭 Install](#-install) · [📅 Every day](#-every-day) · [🚀 Example](#-example-write-down-your-method) · [🔐 Public and private](#-public-and-private-workflows) · [🙋 I want to](#-i-want-to-) · [🛠️ Common problems](#%EF%B8%8F-common-problems) · **[📚 Workflows you can install](https://github.com/musetee/durweg-workflows)**
 
 **Turn the way you and your AI always work into a workflow: set it up once, and every new project runs on it; the AI delivers step by step, every step is checked automatically, and it stops only where you chose, so you can look at the results and confirm before it goes on.**
 
@@ -16,6 +16,18 @@ flowchart LR
 ```
 
 Each step must pass before work moves on: Durweg checks automatically that the result is there and complete, and when you write the workflow you decide which steps wait for your confirmation (it can be just once, at the end). If a check fails or you request changes, the work is revised and reviewed again. Each step can use existing skills and plugins; Durweg manages the order, checks, your approval and records.
+
+## ✨ Features
+
+| Feature | What you get | More |
+| :--- | :--- | :--- |
+| **Your own agents do the work** | • Durweg calls no model API and passes no messages between agents<br>• Each step is done in a Claude Code, Codex or other session you have open; they all read and write the same run record | [Every day](#-every-day) |
+| **You decide what it costs** | • The steps are fixed when you write the workflow; no model decides on the fly how many AIs to send out<br>• It runs on the Claude or ChatGPT subscription you already have, with no extra API fees (your subscription still has its usage limits) | [Workflow format](docs/workflow-format.md) |
+| **Checked automatically, asks you only where you chose** | • Every step is checked automatically for a complete result; if it fails, the work is revised before moving on<br>• You decide which steps wait for your confirmation; it can be just once, at the end | [Workflow format](docs/workflow-format.md) |
+| **A record of every step** | • The steps, files, check results and your confirmations of each run are kept in your project's `runs/`<br>• `durweg check` checks the whole record again | [Where your files are](docs/files.md) |
+| **Pick up where it stopped** | • Which step a run has reached is saved on disk: if the session closes or the computer crashes, a new agent (it can be a different one) carries on from the step where it stopped<br>• Changes not yet saved at the moment of a crash may be lost | [Where your files are](docs/files.md) |
+| **Reuse and share your method** | • Write your way of working down once as a workflow, and every new project runs on it<br>• Keep it in your own library, publish it on GitHub (public or private), or install workflows others made | [Public and private workflows](#-public-and-private-workflows) |
+| **Not tied to one agent** | • Install it as a Claude Code plugin, a Codex plugin, or with the installer<br>• Works on Windows, Mac and Linux | [Install](#-install) |
 
 ## 💻 System requirements
 
