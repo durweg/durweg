@@ -4,7 +4,7 @@
 
 [💻 Requirements](#-system-requirements) · [🧭 Install](#-install) · [📅 Every day](#-every-day) · [🚀 Example](#-example-write-down-your-method) · [🔐 Public and private](#-public-and-private-workflows) · [🙋 I want to](#-i-want-to-) · [🛠️ Common problems](#%EF%B8%8F-common-problems) · **[📚 Workflows you can install](https://github.com/musetee/durweg-workflows)**
 
-**Turn the way you and your AI always work into a workflow: set it up once, and every new project runs on it; the AI delivers step by step, and at the checkpoints you look at the results and confirm before it goes on.**
+**Turn the way you and your AI always work into a workflow: set it up once, and every new project runs on it; the AI delivers step by step, every step is checked automatically, and it stops only where you chose, so you can look at the results and confirm before it goes on.**
 
 For example, once it is set up, every new project runs like this:
 
@@ -15,7 +15,7 @@ flowchart LR
     S --> Y["You look at the result and confirm"]
 ```
 
-Each step must pass before work moves on. If a check fails or you request changes, the work is revised and reviewed again. Each step can use existing skills and plugins; Durweg manages the order, checks, your approval and records.
+Each step must pass before work moves on: Durweg checks automatically that the result is there and complete, and when you write the workflow you decide which steps wait for your confirmation (it can be just once, at the end). If a check fails or you request changes, the work is revised and reviewed again. Each step can use existing skills and plugins; Durweg manages the order, checks, your approval and records.
 
 ## 💻 System requirements
 
