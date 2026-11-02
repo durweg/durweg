@@ -17,7 +17,7 @@
 ## 🧭 安装
 
 1. 打开一个终端（不是在 Codex 里）。
-2. 运行 `codex plugin marketplace add musetee/durweg`。
+2. 运行 `codex plugin marketplace add durweg/durweg`。
 3. 运行 `codex plugin add durweg@durweg`。
 4. 在你平时工作的地方新开一个 Codex 会话。在 WSL 里要用 Linux 这边的文件夹（比如 `~/projects/…`）：运行记录会放在你打开 Codex 的那个文件夹里。
 

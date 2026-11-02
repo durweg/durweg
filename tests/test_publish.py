@@ -184,12 +184,12 @@ class PublicCatalogPR(PublishCase):
         git(work, "init", "-q", "-b", "main")
         git(work, "add", "-A")
         git(work, "commit", "-q", "-m", "c")
-        up = self.ghdir / "musetee__durweg-workflows.git"
+        up = self.ghdir / "durweg__durweg-workflows.git"
         subprocess.run(["git", "clone", "-q", "--bare", str(work), str(up)], check=True)
         st = self.gh_state()
-        st["repos"]["musetee/durweg-workflows"] = {"visibility": "PUBLIC", "viewerPermission": "READ", "url": str(up)}
+        st["repos"]["durweg/durweg-workflows"] = {"visibility": "PUBLIC", "viewerPermission": "READ", "url": str(up)}
         self.set_state(st)
-        os.environ["DURWEG_PUBLIC_CATALOG"] = "https://github.com/musetee/durweg-workflows.git"
+        os.environ["DURWEG_PUBLIC_CATALOG"] = "https://github.com/durweg/durweg-workflows.git"
 
     def test_pull_request_from_a_fork(self):
         out = self.wf("publish", "mini", "--public", "--license", "MIT")
@@ -197,7 +197,7 @@ class PublicCatalogPR(PublishCase):
         out = self.wf("publish", "mini", "--public", "--license", "MIT", "--catalog", "yes", "--yes")
         self.assertIn("pull request to the public catalog", out)
         st = self.gh_state()
-        self.assertEqual(st["prs"], [{"repo": "musetee/durweg-workflows", "head": "tester:add-mini", "title": "Add mini"}])
+        self.assertEqual(st["prs"], [{"repo": "durweg/durweg-workflows", "head": "tester:add-mini", "title": "Add mini"}])
         cat = subprocess.run(["git", "--git-dir", st["repos"]["tester/durweg-workflows"]["url"], "show",
                               "add-mini:catalog.json"], capture_output=True, text=True).stdout
         self.assertIn("durweg-mini", json.loads(cat)["workflows"]["mini"]["url"])
@@ -344,12 +344,12 @@ class ReviewRegressions3(PublishCase):
         work.mkdir()
         (work / "catalog.json").write_text(json.dumps({"format": 1, "workflows": {}}))
         git(work, "init", "-q", "-b", "main"); git(work, "add", "-A"); git(work, "commit", "-q", "-m", "c")
-        up = self.ghdir / "musetee__durweg-workflows.git"
+        up = self.ghdir / "durweg__durweg-workflows.git"
         subprocess.run(["git", "clone", "-q", "--bare", str(work), str(up)], check=True)
         st = self.gh_state()
-        st["repos"]["musetee/durweg-workflows"] = {"visibility": "PUBLIC", "viewerPermission": "READ", "url": str(up)}
+        st["repos"]["durweg/durweg-workflows"] = {"visibility": "PUBLIC", "viewerPermission": "READ", "url": str(up)}
         self.set_state(st)
-        os.environ["DURWEG_PUBLIC_CATALOG"] = "https://github.com/musetee/durweg-workflows.git"
+        os.environ["DURWEG_PUBLIC_CATALOG"] = "https://github.com/durweg/durweg-workflows.git"
         return work, up
 
     def test_c012_pull_request_starts_from_the_newest_catalog_and_reruns_update_it(self):
@@ -404,12 +404,12 @@ class WentPublic(PublishCase):
         git(work, "init", "-q", "-b", "main")
         git(work, "add", "-A")
         git(work, "commit", "-q", "-m", "c")
-        up = self.ghdir / "musetee__durweg-workflows.git"
+        up = self.ghdir / "durweg__durweg-workflows.git"
         subprocess.run(["git", "clone", "-q", "--bare", str(work), str(up)], check=True)
         st = self.gh_state()
-        st["repos"]["musetee/durweg-workflows"] = {"visibility": "PUBLIC", "viewerPermission": "READ", "url": str(up)}
+        st["repos"]["durweg/durweg-workflows"] = {"visibility": "PUBLIC", "viewerPermission": "READ", "url": str(up)}
         self.set_state(st)
-        os.environ["DURWEG_PUBLIC_CATALOG"] = "https://github.com/musetee/durweg-workflows.git"
+        os.environ["DURWEG_PUBLIC_CATALOG"] = "https://github.com/durweg/durweg-workflows.git"
         out = self.wf("publish", "mini", "--private", *self.PUB, "--catalog", "yes", "--yes")
         self.assertIn("added mini to your private catalog private", out)
         self.add_other_to_private()

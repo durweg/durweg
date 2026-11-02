@@ -25,7 +25,7 @@ from pathlib import Path
 from . import __version__
 from .util import current_platform, read_json
 
-REPO = "musetee/durweg"
+REPO = "durweg/durweg"
 RELEASES = f"https://github.com/{REPO}/releases/latest"
 RAW = f"https://raw.githubusercontent.com/{REPO}"
 TAG = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")

@@ -2,7 +2,7 @@
 
 # Durweg
 
-[✨ 特点](#-特点) · [💻 系统要求](#-系统要求) · [🧭 安装](#-安装) · [📅 每天怎么用](#-每天怎么用) · [🚀 案例](#-案例写下你的方法) · [🔐 公开和私密](#-公开和私密的工作流) · [🙋 我想……](#-我想) · [🛠️ 常见问题](#%EF%B8%8F-常见问题) · **[📚 可以安装的工作流](https://github.com/musetee/durweg-workflows)**
+[✨ 特点](#-特点) · [💻 系统要求](#-系统要求) · [🧭 安装](#-安装) · [📅 每天怎么用](#-每天怎么用) · [🚀 案例](#-案例写下你的方法) · [🔐 公开和私密](#-公开和私密的工作流) · [🙋 我想……](#-我想) · [🛠️ 常见问题](#%EF%B8%8F-常见问题) · **[📚 可以安装的工作流](https://github.com/durweg/durweg-workflows)**
 
 **把你和 AI 的一套固定做法定成工作流：定一次，每个新项目都照着跑；AI 按步骤交付，每一步自动检查，只在你选的关键处停下来，等你看结果、确认后再继续。**
 
@@ -51,7 +51,7 @@ flowchart LR
 
 如果你已经在用 Claude Code（Windows、Mac、Linux、WSL 都行），并且有 Python 3.9 或更新版本和 git：
 
-1. 在 Claude Code 里输入 `/plugin install durweg --marketplace musetee/durweg`。
+1. 在 Claude Code 里输入 `/plugin install durweg --marketplace durweg/durweg`。
 2. 输入 `/reload-plugins`。
 3. 对 Claude 说：`Run write-your-method with durweg.` 它会先问你用哪种语言，然后开始[案例](#-案例写下你的方法)。
 
@@ -63,7 +63,7 @@ flowchart LR
 
 如果你已经在用 Codex CLI（Mac、Linux 或 WSL），并且有 Python 3.9 或更新版本和 git：
 
-1. 在终端里（不是在 Codex 里）运行 `codex plugin marketplace add musetee/durweg`。
+1. 在终端里（不是在 Codex 里）运行 `codex plugin marketplace add durweg/durweg`。
 2. 运行 `codex plugin add durweg@durweg`。
 3. 新开一个 Codex 会话，对它说：`Run write-your-method with durweg.`
 
@@ -77,7 +77,7 @@ Windows、Mac、Linux 都能用，电脑上还没有 AI agent 也可以。
 
 > 🤖 **嫌麻烦？** 把这句话发给你电脑上的 AI（Claude Code、Codex 等）：
 >
-> `请按 https://github.com/musetee/durweg/blob/main/docs/install-with-your-ai.md 帮我安装 Durweg。`
+> `请按 https://github.com/durweg/durweg/blob/main/docs/install-with-your-ai.md 帮我安装 Durweg。`
 >
 > 它会自己判断你的电脑、运行安装程序；装好以后，重新启动你的 AI。网页上的聊天 AI 碰不到你的电脑，装不了。
 
@@ -87,9 +87,9 @@ Windows、Mac、Linux 都能用，电脑上还没有 AI agent 也可以。
 
 | 你的电脑 | 怎么做 |
 | :--- | :--- |
-| **Windows**<br>（不管有没有 WSL） | • 下载 [`Durweg-Install.bat`](https://github.com/musetee/durweg/releases/latest/download/Durweg-Install.bat)，在 Windows 里双击<br>• 想装进 WSL 也用它：在安装程序里选 WSL，不用自己打开 WSL 输命令 |
-| **Mac** | 下载 [`Durweg-Install-macOS.zip`](https://github.com/musetee/durweg/releases/latest/download/Durweg-Install-macOS.zip)，解压后双击 `Durweg-Install.command` |
-| **Linux**<br>（不是 Windows 里的 WSL） | 在终端里运行：<br>`curl -fsSL https://raw.githubusercontent.com/musetee/durweg/v1.5.0/install.sh \| bash` |
+| **Windows**<br>（不管有没有 WSL） | • 下载 [`Durweg-Install.bat`](https://github.com/durweg/durweg/releases/latest/download/Durweg-Install.bat)，在 Windows 里双击<br>• 想装进 WSL 也用它：在安装程序里选 WSL，不用自己打开 WSL 输命令 |
+| **Mac** | 下载 [`Durweg-Install-macOS.zip`](https://github.com/durweg/durweg/releases/latest/download/Durweg-Install-macOS.zip)，解压后双击 `Durweg-Install.command` |
+| **Linux**<br>（不是 Windows 里的 WSL） | 在终端里运行：<br>`curl -fsSL https://raw.githubusercontent.com/durweg/durweg/v1.5.0/install.sh \| bash` |
 
 安装程序先问语言，Windows 上再问装在哪里（Windows 还是 WSL），然后自动装好，在浏览器里打开这个页面，启动你的 agent；它先问你要不要现在一起做[案例](#-案例写下你的方法)，不想做就说不要，它会告诉你以后怎么开始。途中遇到的每个提问怎么答：见本页最后的[安装时会遇到的提问](#-安装时会遇到的提问)。
 
@@ -115,7 +115,7 @@ Windows、Mac、Linux 都能用，电脑上还没有 AI agent 也可以。
 
 agent 告诉你检查结果是 `PASS`，并且“列出我的 durweg 工作流”里有 `weekly-report`，就成功了。以后只要说“用 durweg 运行 weekly-report”。
 
-**一个真实的案例：** 用这个引导写出工作流 `human-readme`，再用它重写了 Durweg 自己的 README。方法、步骤、每一步用户的原话和经验都在这个案例网页里（中英文可以切换）：[人话README · Durweg 案例](https://claude.ai/artifact/LGnCog4wnBmgMAWJg1Xmi4#zh)。想自己用这个工作流：[durweg-human-readme](https://github.com/musetee/durweg-human-readme)。
+**一个真实的案例：** 用这个引导写出工作流 `human-readme`，再用它重写了 Durweg 自己的 README。方法、步骤、每一步用户的原话和经验都在这个案例网页里（中英文可以切换）：[人话README · Durweg 案例](https://claude.ai/artifact/LGnCog4wnBmgMAWJg1Xmi4#zh)。想自己用这个工作流：[durweg-human-readme](https://github.com/durweg/durweg-human-readme)。
 
 ## 🔐 公开和私密的工作流
 
@@ -124,7 +124,7 @@ agent 告诉你检查结果是 `PASS`，并且“列出我的 durweg 工作流�
 | | 公开 | 私密 |
 | :--- | :--- | :--- |
 | **放在** | 公开的 GitHub 仓库 | 你的私有 GitHub 仓库 |
-| **可以登记在** | [公开菜单](https://github.com/musetee/durweg-workflows)：收录后，谁都能按名字安装 | 你的私人菜单 |
+| **可以登记在** | [公开菜单](https://github.com/durweg/durweg-workflows)：收录后，谁都能按名字安装 | 你的私人菜单 |
 | **谁能用** | 所有人 | • 只有你（以及你在 GitHub 上授权的人）<br>• 另一台电脑：配好访问权限、加上你的私人菜单以后，就能按名字安装、更新 |
 
 对 agent 说“用 durweg 发布 <名字>”，它会问你公开还是私密；第一次发布私密工作流时，它会问你要不要建一个私人菜单（[发布](docs/publish_cn.md)）。
@@ -137,7 +137,7 @@ agent 告诉你检查结果是 `PASS`，并且“列出我的 durweg 工作流�
 | 核对一次运行 | `durweg check <运行文件夹>` |
 | 改语言 | `durweg config language zh`（或 `en`） |
 | 装到别的地方（在 Windows 上改装进 WSL） | 再运行一次安装程序，它问要不要修改时输入 `c` |
-| 把一次运行和 agent 自己的会话记录对照 | 可选插件 [durweg-audit](https://github.com/musetee/durweg-audit) |
+| 把一次运行和 agent 自己的会话记录对照 | 可选插件 [durweg-audit](https://github.com/durweg/durweg-audit) |
 | 找到我的设置、案例和运行记录 | [文件放在哪里](docs/files_cn.md) |
 | 装一个别人做好的工作流 | 对 agent 说“给我看看能装哪些 durweg 工作流”，然后 `durweg library add <名字>`（[目录](docs/workflow-format_cn.md#目录)） |
 | 更新 Durweg 和装好的工作流 | • `durweg update`（[更新](docs/update_cn.md)）<br>• 装成 Claude Code 插件的：Durweg 本身用 `/plugin update durweg` 更新（[插件](docs/install-plugin_cn.md#-更新和卸载)） |

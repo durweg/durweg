@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Durweg installer for Linux (also inside WSL) and macOS. No git and no GitHub account needed.
-#   curl -fsSL https://raw.githubusercontent.com/musetee/durweg/<version>/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/durweg/durweg/<version>/install.sh | bash
 # Durweg-Install.command (macOS) and Durweg-Install.bat (Windows, "WSL") run this script too.
 #
 # Order (plan 2.1): language -> what this system needs (Python 3, curl) -> the fixed Durweg version,
@@ -15,7 +15,7 @@
 set -uo pipefail
 
 VERSION="${DURWEG_VERSION:-v1.5.0}"
-REPO="musetee/durweg"
+REPO="durweg/durweg"
 DATA="${XDG_DATA_HOME:-$HOME/.local/share}/durweg"
 BIN="$HOME/.local/bin"
 DHOME="${DURWEG_HOME:-$HOME/Durweg}"

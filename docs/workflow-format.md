@@ -42,7 +42,7 @@ are in `steps/<n>-<id>.decision.json` as `{"confirm_event": n, "values": {...}}`
 against the copy of the workflow locked at `durweg start`: `PASS` or `FAIL`. It reads only the run
 folder, so it still works after the workflow was changed or moved. It cannot tell a log that was
 rebuilt by hand around valid files; comparing a run with the agent's own session files is the
-optional plugin [durweg-audit](https://github.com/musetee/durweg-audit).
+optional plugin [durweg-audit](https://github.com/durweg/durweg-audit).
 
 ## When to write a gate script
 

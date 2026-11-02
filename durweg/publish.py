@@ -133,7 +133,7 @@ def _source(name):
 
 def _readme(wf):
     lines = [f"# {wf.data.get('title') or wf.id}", "",
-             f"A [Durweg](https://github.com/musetee/durweg) workflow: the steps below are done in order, "
+             f"A [Durweg](https://github.com/durweg/durweg) workflow: the steps below are done in order, "
              "each one checked before the next starts.", "", "## Steps", ""]
     for i, s in enumerate(wf.steps, 1):
         lines.append(f"{i}. **{s.get('title') or s['id']}**")

@@ -15,7 +15,7 @@ if [ -f "$rc" ]; then
     status=$?
 else
     export DURWEG_VERSION="$VERSION"
-    if s="$(curl -fsSL --max-time 60 "https://raw.githubusercontent.com/musetee/durweg/$VERSION/install.sh")"; then
+    if s="$(curl -fsSL --max-time 60 "https://raw.githubusercontent.com/durweg/durweg/$VERSION/install.sh")"; then
         bash -c "$s"; status=$?
     else
         echo "  Cannot download the installer from GitHub. Check the internet connection and try again."

@@ -492,7 +492,7 @@ def cmd_audit(a):
     """The audit is the optional plugin durweg-audit; this only says so and fails, so that a
     missing plugin is never taken for a passed audit (plan V1-R-004)."""
     print("durweg audit is an optional plugin: install durweg-audit "
-          "(https://github.com/musetee/durweg-audit), then run: durweg-audit <run> --transcript <files>",
+          "(https://github.com/durweg/durweg-audit), then run: durweg-audit <run> --transcript <files>",
           file=sys.stderr)
     return 5
 

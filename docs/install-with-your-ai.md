@@ -29,7 +29,7 @@ agent.
 Run, with the language from step 1:
 
 ```
-curl -fsSL https://raw.githubusercontent.com/musetee/durweg/main/install.sh | DURWEG_LANG=zh DURWEG_NO_START=1 DURWEG_AGENT=own bash
+curl -fsSL https://raw.githubusercontent.com/durweg/durweg/main/install.sh | DURWEG_LANG=zh DURWEG_NO_START=1 DURWEG_AGENT=own bash
 ```
 
 - **Mac, "macOS is installing its developer tools":** a window opened for the user. Tell them to
@@ -47,7 +47,7 @@ In PowerShell (from a bash on Windows, put the lines into `powershell.exe -NoPro
 
 ```
 $f = Join-Path $env:TEMP 'Durweg-Install.bat'
-Invoke-WebRequest -UseBasicParsing https://github.com/musetee/durweg/releases/latest/download/Durweg-Install.bat -OutFile $f
+Invoke-WebRequest -UseBasicParsing https://github.com/durweg/durweg/releases/latest/download/Durweg-Install.bat -OutFile $f
 $env:DURWEG_LANG = 'zh'; $env:DURWEG_TARGET = 'windows'; $env:DURWEG_AGENT = 'own'
 $env:DURWEG_NO_START = '1'; $env:DURWEG_NO_PAUSE = '1'
 cmd /c $f

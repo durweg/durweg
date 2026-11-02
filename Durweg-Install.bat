@@ -16,7 +16,7 @@ exit /b %RC%
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 $Version = 'v1.5.0'
-$Repo = 'musetee/durweg'
+$Repo = 'durweg/durweg'
 $Here = Split-Path -Parent $env:DURWEG_SELF
 $Local = Join-Path $env:LOCALAPPDATA 'Durweg'
 $DHome = if ($env:DURWEG_HOME) { $env:DURWEG_HOME } else { Join-Path $HOME 'Durweg' }
