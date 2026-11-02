@@ -538,8 +538,9 @@ class WentPublic(PublishCase):
 
     def test_7_missing_or_stale_cache_is_not_trusted(self):
         from durweg import catalog
+        from durweg.util import rmtree
         self.go_public()
-        shutil.rmtree(catalog.cache_dir("private"))
+        rmtree(catalog.cache_dir("private"))                               # git's read-only files on Windows
         self.assertIn("removed from your private catalog private", self.again())
         f = catalog.cache_dir("private") / "catalog.json"
         data = json.loads(f.read_text())
