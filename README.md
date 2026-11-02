@@ -4,22 +4,15 @@
 
 [💻 Requirements](#-system-requirements) · [🧭 Install](#-install) · [📅 Every day](#-every-day) · [🚀 Example](#-example-write-down-your-method) · [🔐 Public and private](#-public-and-private-workflows) · [🙋 I want to](#-i-want-to-) · [🛠️ Common problems](#%EF%B8%8F-common-problems) · **[📚 Workflows you can install](https://github.com/musetee/durweg-workflows)**
 
-**Durweg makes AI workflows controllable: AI delivers step by step, and at the checkpoints you choose you review the results, request changes and approve before it goes on, so AI and you work together like a pipeline.**
+**Turn the way you and your AI always work into a workflow: set it up once, and every new project runs on it; the AI delivers step by step, and at the checkpoints you look at the results and confirm before it goes on.**
 
-For example, a weekly report:
+For example, once it is set up, every new project runs like this:
 
 ```mermaid
 flowchart LR
-    A["① Collect this week's material"]
-    B["② Write the draft"]
-    C["③ You review the draft"]
-    D["④ Make the slides"]
-    E["Deliver, with a record of each step"]
-
-    A -->|Passes checks| B
-    B -->|Passes checks| C
-    C -->|You approve| D
-    D -->|Passes checks| E
+    L["Lead AI<br>splits the work"] --> A1["AI ①"] & A2["AI ②"] & A3["AI ③"]
+    A1 & A2 & A3 --> S["AI sums up"]
+    S --> Y["You look at the result and confirm"]
 ```
 
 Each step must pass before work moves on. If a check fails or you request changes, the work is revised and reviewed again. Each step can use existing skills and plugins; Durweg manages the order, checks, your approval and records.
