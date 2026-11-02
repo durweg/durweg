@@ -20,7 +20,7 @@ from . import gitops
 from .util import WfError, now, read_json, rmtree, write_json
 
 PUBLIC = "public"
-PUBLIC_URL = "https://github.com/musetee/durweg-workflows.git"
+PUBLIC_URL = "https://github.com/durweg/durweg-workflows.git"
 ID = re.compile(r"^[a-z0-9][a-z0-9-]+$")                                    # at least 2: never a drive C:
 QUALIFIED = re.compile(r"^([a-z0-9][a-z0-9-]+):([a-z0-9][a-z0-9-]*)$")      # <id>:<name>
 WF_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")

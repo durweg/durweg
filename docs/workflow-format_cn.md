@@ -33,7 +33,7 @@
 
 ## 核对
 
-`durweg check <运行>` 重放这次运行的事件记录，并且按 `durweg start` 时锁定的工作流副本，重新检查每一个关卡、每一个文件的指纹，结果是 `PASS` 或 `FAIL`。它只读运行文件夹，所以工作流后来被修改或移动了，也照样能核对。如果有人围着合格的文件手工重写了记录，它查不出来；把运行和 agent 自己的会话记录对照，是可选插件 [durweg-audit](https://github.com/musetee/durweg-audit) 的事。
+`durweg check <运行>` 重放这次运行的事件记录，并且按 `durweg start` 时锁定的工作流副本，重新检查每一个关卡、每一个文件的指纹，结果是 `PASS` 或 `FAIL`。它只读运行文件夹，所以工作流后来被修改或移动了，也照样能核对。如果有人围着合格的文件手工重写了记录，它查不出来；把运行和 agent 自己的会话记录对照，是可选插件 [durweg-audit](https://github.com/durweg/durweg-audit) 的事。
 
 ## 什么时候写关卡脚本
 

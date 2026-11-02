@@ -183,7 +183,7 @@ class Install(unittest.TestCase):
         self.assertEqual(seen.read_text(), "https://example.org/durweg/README_cn.md")
         seen.unlink()
         r = self.install(DURWEG_LANG="en", DURWEG_OPEN_CMD=str(opener))       # DURWEG_NO_START: no browser
-        self.assertIn("Guide: https://github.com/musetee/durweg/blob/v9.0.0/README.md", r.stdout)
+        self.assertIn("Guide: https://github.com/durweg/durweg/blob/v9.0.0/README.md", r.stdout)
         self.assertFalse(seen.exists())
 
     def test_slow_browser_does_not_hold_up_the_installer(self):          # V1-C-011

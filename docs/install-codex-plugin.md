@@ -21,7 +21,7 @@ use the installer from the [README](../README.md#option-c-with-the-installer).
 ## 🧭 Install
 
 1. Open a terminal (not Codex itself).
-2. Run `codex plugin marketplace add musetee/durweg`.
+2. Run `codex plugin marketplace add durweg/durweg`.
 3. Run `codex plugin add durweg@durweg`.
 4. Start a new Codex session where you usually work. In WSL, that is a Linux folder such as
    `~/projects/…`: your runs are kept in the folder you start in.
