@@ -34,6 +34,12 @@ changed and stays where you edit the workflow.
 - **Another computer:** `durweg library add <the repository's address>`, or by name when it is in a
   catalog: for your private catalog, first `durweg catalog add private <its address>` (once, with
   `gh` logged in).
+- **Made public on GitHub:** a workflow you published as private and then made public on GitHub
+  yourself is published as public from then on. The next "Publish <name> with durweg" says so
+  first; with your yes it updates its record, takes the workflow out of your private catalog and
+  asks whether to propose it to the public catalog. If your private catalog cannot be changed just
+  then, it says so and tries again the next time you publish. The other way round (public made
+  private) is not supported.
 
 ## What Durweg never does
 

@@ -389,3 +389,275 @@ class ReviewRegressions3(PublishCase):
         files = self.files_in("tester/durweg-mini")
         self.assertIn("README.md", files)
         self.assertIn("README_cn.md", files)
+
+
+class WentPublic(PublishCase):
+    """Published as private, made public on GitHub by the user: followed (durweg-dev plan
+    20261102_publish-private-to-public, PP-R-001..003)."""
+    PUB = ("--license", "MIT")
+
+    def setUp(self):
+        super().setUp()
+        work = self.tmp / "catwork"
+        work.mkdir()
+        (work / "catalog.json").write_text(json.dumps({"format": 1, "workflows": {}}))
+        git(work, "init", "-q", "-b", "main")
+        git(work, "add", "-A")
+        git(work, "commit", "-q", "-m", "c")
+        up = self.ghdir / "musetee__durweg-workflows.git"
+        subprocess.run(["git", "clone", "-q", "--bare", str(work), str(up)], check=True)
+        st = self.gh_state()
+        st["repos"]["musetee/durweg-workflows"] = {"visibility": "PUBLIC", "viewerPermission": "READ", "url": str(up)}
+        self.set_state(st)
+        os.environ["DURWEG_PUBLIC_CATALOG"] = "https://github.com/musetee/durweg-workflows.git"
+        out = self.wf("publish", "mini", "--private", *self.PUB, "--catalog", "yes", "--yes")
+        self.assertIn("added mini to your private catalog private", out)
+        self.add_other_to_private()
+
+    def tearDown(self):
+        calls = self.gh_state().get("calls", [])
+        self.assertFalse([c for c in calls if c[:2] == ["repo", "edit"]], "Durweg changed a repository")
+        super().tearDown()
+
+    # -- helpers
+    def set_vis(self, repo, vis, perm=None):
+        st = self.gh_state()
+        st["repos"][repo]["visibility"] = vis
+        if perm:
+            st["repos"][repo]["viewerPermission"] = perm
+        self.set_state(st)
+
+    def go_public(self):
+        self.set_vis("tester/durweg-mini", "PUBLIC")
+
+    def private_url(self):
+        return self.gh_state()["repos"]["tester/durweg-workflows-private"]["url"]
+
+    def private_catalog(self):
+        text = subprocess.run(["git", "--git-dir", self.private_url(), "show", "main:catalog.json"],
+                              capture_output=True, text=True, encoding="utf-8").stdout
+        return json.loads(text)
+
+    def edit_private(self, change):
+        work = self.tmp / f"pw{len(list(self.tmp.glob('pw*')))}"
+        subprocess.run(["git", "clone", "-q", self.private_url(), str(work)], check=True)
+        data = json.loads((work / "catalog.json").read_text())
+        change(data)
+        (work / "catalog.json").write_text(json.dumps(data))
+        git(work, "-c", "user.name=t", "-c", "user.email=t@x", "commit", "-q", "-am", "edit")
+        git(work, "push", "-q", "origin", "HEAD:main")
+
+    def add_other_to_private(self):
+        def add(d):
+            d["workflows"]["other"] = {"title": "o", "summary": "o", "url": "https://github.com/tester/other.git"}
+            d["note"] = "kept"
+        self.edit_private(add)
+
+    def record(self):
+        return json.loads((self.home() / "publish" / "mini" / ".durweg-publish.json").read_text())
+
+    def again(self, *extra, expect=0):
+        (self.repo / "skills/mini/SKILL.md").write_text(f"v{len(self.gh_state()['calls'])}\n")
+        return self.wf("publish", "mini", *self.PUB, *extra, expect=expect)
+
+    def patched(self, obj, attr, fn):
+        real = getattr(obj, attr)
+        setattr(obj, attr, fn(real))
+        self.addCleanup(setattr, obj, attr, real)
+
+    # -- the tests (R4 numbering)
+    def test_1_shown_first_nothing_changes(self):
+        self.go_public()
+        before = len(self.gh_state()["calls"])
+        out = self.again()
+        self.assertIn("is public on GitHub now: the record changes from private to public", out)
+        self.assertIn("removed from your private catalog private", out)
+        self.assertIn("propose it to the public catalog", out)
+        new = self.gh_state()["calls"][before:]
+        self.assertFalse([c for c in new if c[0] in ("pr",) or c[:2] in (["repo", "create"], ["repo", "fork"])], new)
+        self.assertEqual(self.record()["visibility"], "private")
+        self.assertIn("mini", self.private_catalog()["workflows"])
+
+    def test_2_yes_with_public_catalog(self):
+        self.go_public()
+        out = self.again("--catalog", "yes", "--yes")
+        self.assertIn("pushed a new version", out)
+        self.assertIn("the record of mini says public now", out)
+        self.assertIn("removed mini from your private catalog private", out)
+        self.assertIn("pull request to the public catalog", out)
+        rec = self.record()
+        self.assertEqual(rec["visibility"], "public")
+        self.assertIn("made_public", rec)
+        self.assertNotIn("unlist", rec)
+        cat = self.private_catalog()
+        self.assertEqual(sorted(cat["workflows"]), ["other"])
+        self.assertEqual(cat["note"], "kept")
+        self.assertEqual(len(self.gh_state()["prs"]), 1)
+        self.assertNotIn("private:mini", self.wf("library", "available"))
+        # from now on an ordinary public workflow
+        out = self.again("--catalog", "no", "--yes")
+        self.assertNotIn("record changes", out)
+        self.assertNotIn("private catalog", out)
+
+    def test_3_yes_without_public_catalog(self):
+        self.go_public()
+        self.again("--catalog", "no", "--yes")
+        self.assertEqual(self.record()["visibility"], "public")
+        self.assertEqual(self.gh_state()["prs"], [])
+
+    def test_4_private_asked_for_is_refused(self):
+        self.go_public()
+        out = self.wf("publish", "mini", "--private", *self.PUB, expect=1)
+        self.assertIn("run it without --private", out)
+
+    def test_5_same_name_other_url_is_left_alone(self):
+        self.go_public()
+        self.assertIn("removed from your private catalog", self.again())     # the cache still says ours
+        self.edit_private(lambda d: d["workflows"]["mini"].update(url="https://github.com/someone/else.git"))
+        out = self.again("--catalog", "no", "--yes")
+        self.assertIn("lists another workflow named mini; it was left alone", out)
+        self.assertEqual(self.private_catalog()["workflows"]["mini"]["url"], "https://github.com/someone/else.git")
+        self.assertNotIn("unlist", self.record())
+
+    def test_5b_other_url_found_by_the_removal_itself(self):
+        self.go_public()
+        from durweg import publish
+        p = publish.prepare("mini", license_choice="MIT", catalog_answer="no")
+        self.edit_private(lambda d: d["workflows"]["mini"].update(url="https://github.com/someone/else.git"))
+        out = "\n".join(publish.publish(p))
+        self.assertIn("left alone", out)
+        self.assertIn("mini", self.private_catalog()["workflows"])
+
+    def test_6_already_gone_is_done(self):
+        self.go_public()
+        self.edit_private(lambda d: d["workflows"].pop("mini"))
+        out = self.again("--catalog", "no", "--yes")
+        self.assertNotIn("removed mini", out)
+        self.assertNotIn("private catalog", out)
+        self.assertNotIn("unlist", self.record())
+
+    def test_7_missing_or_stale_cache_is_not_trusted(self):
+        from durweg import catalog
+        self.go_public()
+        shutil.rmtree(catalog.cache_dir("private"))
+        self.assertIn("removed from your private catalog private", self.again())
+        f = catalog.cache_dir("private") / "catalog.json"
+        data = json.loads(f.read_text())
+        data["workflows"].pop("mini")
+        f.write_text(json.dumps(data))                                     # stale: without mini
+        self.assertIn("removed from your private catalog private", self.again())
+        self.again("--catalog", "no", "--yes")
+        self.assertNotIn("mini", self.private_catalog()["workflows"])
+
+    def test_8_catalog_cannot_be_checked(self):
+        from durweg import catalog, publish
+        self.go_public()
+        self.patched(catalog, "refresh", lambda real: lambda cid, url: "cannot connect (offline?)")
+        out = self.again()
+        self.assertIn("your private catalog private could not be checked (cannot connect (offline?))", out)
+        out = self.again("--catalog", "no", "--yes")
+        self.assertIn("pushed a new version", out)
+        self.assertIn("removed mini from your private catalog", out)          # the removal reads GitHub itself
+        self.assertIn("the copy of private on this computer was not updated", out)
+
+    def test_9_private_catalog_not_private_or_read_only_then_retried(self):
+        from durweg import publish
+        self.go_public()
+        for vis, perm in (("PUBLIC", None), ("PRIVATE", "READ")):
+            p = publish.prepare("mini", license_choice="MIT", catalog_answer="no")
+            self.set_vis("tester/durweg-workflows-private", vis, perm)
+            out = "\n".join(publish.publish(p))
+            self.assertIn("still in your private catalog private", out)
+            self.assertIn("mini", self.private_catalog()["workflows"])
+            self.assertIn("unlist", self.record())
+            self.set_vis("tester/durweg-workflows-private", "PRIVATE", "ADMIN")
+        self.assertIn("removed from your private catalog private", self.again())  # pending: shown
+        out = self.again("--catalog", "no", "--yes")
+        self.assertIn("removed mini from your private catalog", out)
+        self.assertNotIn("unlist", self.record())
+
+    def test_10_removal_push_fails_pr_still_made_then_retried(self):
+        from durweg import gitops
+        self.go_public()
+
+        def failing(real):
+            def run(args, *a, **kw):
+                if args[:4] == ["push", "-q", "origin", "HEAD"] and not getattr(run, "done", False):
+                    run.done = True
+                    raise gitops.GitFailed("rejected (fetch first)", "rejected")
+                return real(args, *a, **kw)
+            return run
+        self.patched(gitops, "run", failing)
+        out = self.again("--catalog", "yes", "--yes")
+        self.assertIn("not removed from your private catalog private yet", out)
+        self.assertIn("pull request to the public catalog", out)
+        rec = self.record()
+        self.assertEqual(rec["visibility"], "public")
+        self.assertIn("unlist", rec)
+        self.assertIn("mini", self.private_catalog()["workflows"])
+        out = self.again("--catalog", "no", "--yes")
+        self.assertIn("removed mini from your private catalog", out)
+        self.assertNotIn("unlist", self.record())
+
+    def test_11_removed_but_cache_not_updated(self):
+        from durweg import catalog
+        self.go_public()
+        p_out = self.again()
+        self.assertIn("removed from your private catalog", p_out)
+        self.patched(catalog, "refresh", lambda real: lambda cid, url: "offline")
+        out = self.again("--catalog", "no", "--yes")
+        self.assertIn("removed mini from your private catalog", out)
+        self.assertIn("was not updated (offline); `durweg update` refreshes it", out)
+
+    def test_12_workflow_push_fails_nothing_else_happens(self):
+        from durweg import gitops
+        self.go_public()
+
+        def failing(real):
+            def run(args, *a, **kw):
+                if args[:2] == ["push", "-q"] and args[-1] == "HEAD:main":
+                    raise gitops.GitFailed("cannot connect (offline?)", "offline")
+                return real(args, *a, **kw)
+            return run
+        real = gitops.run
+        gitops.run = failing(real)
+        try:
+            self.assertIn("cannot connect", self.again("--catalog", "yes", "--yes", expect=1))
+        finally:
+            gitops.run = real
+        self.assertEqual(self.record()["visibility"], "private")
+        self.assertIn("mini", self.private_catalog()["workflows"])
+        self.assertEqual(self.gh_state()["prs"], [])
+        out = self.again("--catalog", "yes", "--yes")
+        self.assertIn("removed mini from your private catalog", out)
+        self.assertEqual(self.record()["visibility"], "public")
+
+    def test_13_private_again_or_unknown_before_yes(self):
+        from durweg import publish
+        from durweg.util import WfError
+        self.go_public()
+        for vis in ("PRIVATE", "INTERNAL"):
+            p = publish.prepare("mini", license_choice="MIT", catalog_answer="no")
+            self.set_vis("tester/durweg-mini", vis)
+            with self.assertRaises(WfError) as e:
+                publish.publish(p)
+            self.assertIn("nothing was pushed", str(e.exception))
+            self.assertEqual(self.record()["visibility"], "private")
+            self.go_public()
+        p = publish.prepare("mini", license_choice="MIT", catalog_answer="no")
+        self.patched(publish, "repo_info", lambda real: lambda repo: None if repo == "tester/durweg-mini" else real(repo))
+        with self.assertRaises(WfError):
+            publish.publish(p)
+        self.assertEqual(self.record()["visibility"], "private")
+
+    def test_14_what_stays_refused(self):
+        # private on both sides: --public is still not Durweg's to do
+        self.assertIn("does not change that", self.wf("publish", "mini", "--public", *self.PUB, expect=1))
+        # public now, but the public catalog still needs a license
+        self.go_public()
+        out = self.wf("publish", "mini", "--license", "none", "--catalog", "yes", expect=1)
+        self.assertIn("only workflows with a LICENSE", out)
+        # and back: public record, private on GitHub, is refused as before
+        self.again("--catalog", "no", "--yes")
+        self.set_vis("tester/durweg-mini", "PRIVATE")
+        self.assertIn("does not push to it", self.again("--catalog", "no", expect=1))

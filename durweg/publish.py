@@ -10,7 +10,10 @@ named. It is copied into ~/Durweg/publish/<name>/, a git repository of its own; 
 the folder, no runs, no settings. The folder stays yours: edit it there and publish again.
 
 Repositories: a repository that this staging folder did not create is never pushed to, and the
-visibility of an existing one is never changed. Catalogs: a public workflow may be proposed to the
+visibility of an existing one is never changed. One change made on GitHub is followed: a workflow
+published as private whose repository you made public there is published as public from then on
+(shown first; the record changes at --yes), and its entry in your private catalog is removed - kept
+in the record as "unlist" until that worked, so a later publish tries again. Catalogs: a public workflow may be proposed to the
 public catalog (a pull request); a private one only ever goes into your own private catalog, and
 only after GitHub confirms that catalog is private and that you may write to it.
 
@@ -189,29 +192,43 @@ def prepare(name, visibility=None, repo=None, license_choice=None, case=None, ca
         if repo != record["repo"]:
             raise WfError(f"{name} was published to {record['repo']} before; Durweg pushes only there "
                           f"(to start again elsewhere, remove {stage})")
-        visibility = visibility or record["visibility"]
-        if visibility != record["visibility"]:
-            raise WfError(f"{record['repo']} is {record['visibility']}; Durweg does not change that "
-                          "(change it on GitHub yourself if you want to)")
     repo = repo or f"{owner}/durweg-{name}"
     if not REPO.match(repo):
         raise WfError(f"--repo is owner/name, not {repo!r}")
-    if visibility not in ("public", "private"):
-        questions.append("public or private? (--public or --private)")
-
     info = repo_info(repo)
+    went_public, unlist = False, None
     if record:
         if not info:
             raise WfError(f"{repo} is not on GitHub any more (or you lost access); nothing was pushed")
-        if str(info.get("visibility", "")).lower() != record["visibility"]:
-            raise WfError(f"{repo} is {str(info.get('visibility')).lower()} on GitHub now, "
-                          f"not {record['visibility']}; Durweg does not push to it")
+        on_github = str(info.get("visibility", "")).lower()
+        if record["visibility"] == "private" and on_github == "public":
+            # made public on GitHub by the user: followed, never the other way round
+            if visibility == "private":
+                raise WfError(f"{repo} is public on GitHub now; run it without --private to publish it as public")
+            went_public, visibility = True, "public"
+            notes.append(f"{repo} is public on GitHub now: the record changes from private to public")
+            unlist = _unlist_target(record)
+        else:
+            visibility = visibility or record["visibility"]
+            if visibility != record["visibility"]:
+                raise WfError(f"{record['repo']} is {record['visibility']}; Durweg does not change that "
+                              "(change it on GitHub yourself if you want to)")
+            if on_github != record["visibility"]:
+                raise WfError(f"{repo} is {on_github} on GitHub now, "
+                              f"not {record['visibility']}; Durweg does not push to it")
+            unlist = record.get("unlist")
+        if unlist:
+            note = _unlist_preview(unlist, name)
+            if note:
+                notes.append(note)
         action = f"push a new version to {repo}"
     elif info:
         raise WfError(f"{repo} exists on GitHub already and was not made by `durweg publish` here; "
                       "Durweg does not push to it: choose another name with --repo")
     else:
         action = f"create the {visibility or '?'} repository {repo} and push"
+    if visibility not in ("public", "private"):
+        questions.append("public or private? (--public or --private)")
 
     if case:
         c = Path(case).expanduser()
@@ -233,7 +250,8 @@ def prepare(name, visibility=None, repo=None, license_choice=None, case=None, ca
     notes += cat.get("notes", [])
     return {"name": name, "wf": wf, "src": src, "stage": stage, "repo": repo, "visibility": visibility,
             "owner": owner, "license": license_choice, "case": case, "files": files, "action": action,
-            "catalog": cat, "questions": questions, "notes": notes, "record": record}
+            "catalog": cat, "questions": questions, "notes": notes, "record": record,
+            "went_public": went_public, "unlist": unlist}
 
 
 def _record(stage):
@@ -242,6 +260,34 @@ def _record(stage):
         return read_json(p) if p.is_file() else None
     except (OSError, ValueError):
         raise WfError(f"{p} cannot be read; fix or delete it")
+
+
+def _unlist_target(record):
+    """Where the entry of a workflow that went public is to be removed: your private catalog."""
+    pid = catalog._load().get("private_default")
+    entry = catalog.configured().get(pid) or {} if pid else {}
+    target = entry.get("repo") or github_repo(entry.get("url", ""))
+    if not (pid and target and record.get("url")):
+        return None
+    return {"id": pid, "target": target, "url": record["url"]}
+
+
+def _unlist_preview(u, name):
+    """The line for the plan. Only the newest copy of the catalog counts; a stale or missing cache
+    never means "not listed" (PP-R-002). The removal itself checks again (_edit_catalog)."""
+    url = (catalog.configured().get(u["id"]) or {}).get("url")
+    try:
+        reason = catalog.refresh(u["id"], url) if url else "it is not set up on this computer"
+        if not reason:
+            items, _ = catalog._parse(u["id"], catalog.cache_dir(u["id"]))
+            e = items.get(name)
+            if e and catalog.same_url(e["url"], u["url"]):
+                return f"removed from your private catalog {u['id']} ({u['target']}), as it is public now"
+            return None
+    except (WfError, OSError) as e:
+        reason = str(e)
+    return (f"your private catalog {u['id']} could not be checked ({reason}); "
+            "Durweg checks it again when publishing")
 
 
 def _catalog_plan(name, visibility, owner, answer, licensed):
@@ -352,6 +398,11 @@ def publish(p):
     if p["questions"]:
         raise WfError("not published: answer first: " + "; ".join(p["questions"]))
     out = []
+    if p.get("went_public"):
+        now_vis = str((repo_info(p["repo"]) or {}).get("visibility", "")).upper()
+        if now_vis != "PUBLIC":
+            raise WfError(f"{p['repo']} is not public on GitHub any more ({now_vis.lower() or 'not shown'}); "
+                          "nothing was pushed")
     changed = _sync(p)
     stage, rec = p["stage"], p["record"]
     if not rec:
@@ -365,6 +416,11 @@ def publish(p):
     url = rec["url"]
     gitops.run(["push", "-q", url, "HEAD:main"], cwd=stage, url=url)
     rec["pushed"] = now()
+    if p.get("went_public"):                       # only once the push worked (PP-R-003)
+        rec["visibility"], rec["made_public"] = "public", now()
+        if p.get("unlist"):
+            rec["unlist"] = p["unlist"]
+        out.append(f"the record of {p['name']} says public now, as {p['repo']} is public on GitHub")
     write_json(stage / RECORD, rec)
     out.append(f"pushed {'a new version' if changed else 'the same version'} to {url}")
     with library._IndexLock("library"):
@@ -372,6 +428,13 @@ def publish(p):
         if p["name"] in data["workflows"]:
             data["workflows"][p["name"]]["published"] = url
             write_json(library.home() / "library.json", data)
+    if rec.get("unlist"):
+        u = rec["unlist"]
+        try:
+            out += _unlist(p["name"], rec, stage)
+        except (WfError, OSError, ValueError) as e:
+            out.append(f"not removed from your private catalog {u['id']} yet: {e}; "
+                       "Durweg tries again on the next publish")
     try:
         out += _do_catalog(p, url)
     except (WfError, OSError, ValueError) as e:
@@ -382,6 +445,29 @@ def publish(p):
 def _entry(p, url):
     return {"title": p["wf"].data.get("title") or p["name"],
             "summary": p["wf"].data.get("summary") or p["wf"].data.get("title") or p["name"], "url": url}
+
+
+def _unlist(name, rec, stage):
+    """Remove the entry of a workflow that is public now from the private catalog in the record.
+    The record keeps "unlist" until it is removed, gone, or another workflow by that name."""
+    u = rec["unlist"]
+    reason = private_ok(repo_info(u["target"]))   # asked again right before writing
+    if reason:
+        return [f"still in your private catalog {u['id']}: {reason}; Durweg tries again on the next publish"]
+    result = _edit_catalog(u["target"], name, None, remove_url=u["url"])
+    del rec["unlist"]
+    write_json(stage / RECORD, rec)
+    if result == "gone":
+        return []
+    if result == "other":
+        return [f"your private catalog {u['id']} lists another workflow named {name}; it was left alone"]
+    out = [f"removed {name} from your private catalog {u['id']} ({u['target']})"]
+    url = (catalog.configured().get(u["id"]) or {}).get("url")
+    why = catalog.refresh(u["id"], url) if url else None
+    if why:
+        out.append(f"the copy of {u['id']} on this computer was not updated ({why}); "
+                   "`durweg update` refreshes it")
+    return out
 
 
 def _do_catalog(p, url):
@@ -409,10 +495,12 @@ def _do_catalog(p, url):
     return [f"added {p['name']} to your private catalog {c['id']} ({c['target']})"]
 
 
-def _edit_catalog(source, name, entry, dest=None, branch=None):
+def _edit_catalog(source, name, entry, dest=None, branch=None, remove_url=None):
     """Clone the newest catalog.json of `source`, add or replace one entry, and push: to `source`'s
     default branch, or (a pull request) to `branch` of `dest`, replacing an earlier version of that
-    branch. A repository without a valid catalog.json is never written to (V11-C-011)."""
+    branch. A repository without a valid catalog.json is never written to (V11-C-011).
+    entry=None removes `name`, only when its url is `remove_url` in that newest copy (PP-R-001), with
+    a plain push that never overwrites newer commits. Returns "removed", "gone" or "other"."""
     src = repo_info(source) or {}
     if not src.get("url"):
         raise WfError(f"{source} cannot be read")
@@ -428,17 +516,29 @@ def _edit_catalog(source, name, entry, dest=None, branch=None):
             data = read_json(f)
         except (OSError, ValueError) as e:
             raise WfError(f"{source}: catalog.json cannot be read ({e})")
-        data["workflows"][name] = entry
+        result = None
+        if entry is None:
+            old = data["workflows"].get(name)
+            if old is None:
+                return "gone"
+            if not (isinstance(old, dict) and catalog.same_url(str(old.get("url", "")), remove_url or "")):
+                return "other"
+            del data["workflows"][name]
+            result = "removed"
+        else:
+            data["workflows"][name] = entry
         f.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         gitops.run(["add", "catalog.json"], cwd=work)
         owner = (dest or source).split("/")[0]
         ident = ["-c", f"user.name={owner}", "-c", f"user.email={owner}@users.noreply.github.com"]
         if gitops.run(["status", "--porcelain"], cwd=work).strip():
-            gitops.run([*ident, "commit", "-q", "-m", f"Add {name}"], cwd=work)
+            msg = f"Remove {name} (public now)" if entry is None else f"Add {name}"
+            gitops.run([*ident, "commit", "-q", "-m", msg], cwd=work)
         if branch:
             gitops.run(["push", "-q", "--", to["url"], f"+HEAD:refs/heads/{branch}"], cwd=work, url=to["url"])
         else:
             gitops.run(["push", "-q", "origin", "HEAD"], cwd=work, url=src["url"])
+    return result
 
 
 def _pull_request(p, upstream, url):
