@@ -304,7 +304,8 @@ def _library_list_json():
             plats, valid = None, False
         items.append({"name": name, "path": str(p), "platforms": plats, "valid": valid,
                       "url": catalog.gitops.redact(e["url"]) if e.get("url") else None,
-                      "builtin": library.is_builtin(name, e)})
+                      "builtin": library.is_builtin(name, e) or e.get("source") == "plugin",
+                      "comes_with": "durweg" if library.is_builtin(name, e) else e.get("plugin")})
     return emit({"items": items})
 
 
@@ -399,7 +400,7 @@ def _available():
 
 def _normal_skip(detail):
     """A skip that needs no attention: the user's own folder, or the example in the plugin."""
-    return detail.startswith("your own folder") or detail == library.PLUGIN_NOTE
+    return detail.startswith("your own folder") or detail.startswith("comes with the")
 
 
 def update_data(names):
@@ -568,6 +569,12 @@ def cmd_config(a):
     return 0
 
 
+def cmd_plugin_workflows(a):
+    for name, result in library.follow_plugin(a.plugin, a.folders):
+        print(f"{name:23} {result}")
+    return 0
+
+
 def cmd_example(a):
     library.point_example(a.path)
     return 0
@@ -687,6 +694,9 @@ def main(argv=None):
     p.add_argument("key", nargs="?")
     p.add_argument("value", nargs="?")
     sub.add_parser("_coexist", help=argparse.SUPPRESS)    # install.sh: plugin copies next to this one
+    p = sub.add_parser("_plugin_workflows", help=argparse.SUPPRESS)   # another plugin's hook: its workflows
+    p.add_argument("plugin")
+    p.add_argument("folders", nargs="+")
     p = sub.add_parser("_example", help=argparse.SUPPRESS)   # Durweg-Install.bat: the example of this version
     p.add_argument("path")
     p = sub.add_parser("doctor", help="check this computer: agents, whether they have Durweg, GitHub sign-in")
@@ -708,7 +718,7 @@ def main(argv=None):
         library.ensure_plugin_example(root)
     fn = {"start": cmd_start, "begin": cmd_begin, "propose": cmd_propose, "confirm": cmd_confirm,
           "done": cmd_done, "reopen": cmd_reopen, "status": cmd_status, "render": cmd_render,
-          "check": cmd_check, "audit": cmd_audit, "library": cmd_library, "catalog": cmd_catalog, "update": cmd_update, "publish": cmd_publish, "runs": cmd_runs, "uninstall": cmd_uninstall, "config": cmd_config, "_coexist": cmd_coexist, "ui": cmd_ui, "doctor": cmd_doctor, "_example": cmd_example}[a.cmd]
+          "check": cmd_check, "audit": cmd_audit, "library": cmd_library, "catalog": cmd_catalog, "update": cmd_update, "publish": cmd_publish, "runs": cmd_runs, "uninstall": cmd_uninstall, "config": cmd_config, "_coexist": cmd_coexist, "ui": cmd_ui, "doctor": cmd_doctor, "_example": cmd_example, "_plugin_workflows": cmd_plugin_workflows}[a.cmd]
     try:
         rc = fn(a)
     except WfError as e:

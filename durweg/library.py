@@ -221,6 +221,45 @@ def is_builtin(name, entry):
     return path.parts[-2:] == ("examples", PLUGIN_EXAMPLE) and (path.parent.parent / "durweg" / "__init__.py").is_file()
 
 
+def plugin_note(plugin):
+    return f"comes with the plugin {plugin} (updated with the plugin)"
+
+
+def follow_plugin(plugin, folders):
+    """For another agent plugin that ships Durweg workflows (e.g. durweg-todo, run from its hook at the
+    start of a session): register each folder under its folder name, or point the entry this plugin
+    registered before at the folder (the plugin's folder changes with every version). An entry of that
+    name from anywhere else (the user's own folder, a catalog, another plugin) is left alone.
+    Returns [(name, "added" | "moved" | "unchanged" | "kept yours" | "invalid: ...")]; never raises
+    for one bad folder."""
+    if not NAME.match(plugin or ""):
+        raise WfError(f"plugin names use lower-case letters, digits and -: {plugin!r}")
+    out = []
+    for folder in folders:
+        path = Path(os.path.normpath(Path(folder).expanduser().absolute()))
+        name = path.name
+        try:
+            _check_name(name)
+            workflow.load(path)                       # validates workflow.json
+        except WfError as e:
+            out.append((name, f"invalid: {e}"))
+            continue
+        with _IndexLock("library"):
+            data = _load("library.json", "workflows")
+            old = data["workflows"].get(name)
+            if old and not (old.get("source") == "plugin" and old.get("plugin") == plugin):
+                out.append((name, "kept yours"))
+                continue
+            if old and old.get("path") == str(path):
+                out.append((name, "unchanged"))
+                continue
+            data["workflows"][name] = {"path": str(path), "source": "plugin", "plugin": plugin,
+                                       "added": (old or {}).get("added") or now()}
+            write_json(home() / "library.json", data)
+            out.append((name, "moved" if old else "added"))
+    return out
+
+
 def point_example(path):
     """The installer's step for the example (Windows: each version has its own folder): register
     write-your-method at `path`, a Durweg copy's examples/write-your-method, or move the built-in entry
@@ -248,6 +287,9 @@ def remove(name):
         if is_builtin(name, data["workflows"][name]):
             raise WfError(f"{name} comes with Durweg and stays in the library; "
                           "it is only run when you ask for it")
+        if data["workflows"][name].get("source") == "plugin":           # its plugin's hook would add it again
+            raise WfError(f"{name} comes with the plugin {data['workflows'][name].get('plugin', '?')}; "
+                          "to remove it, uninstall that plugin")
         entry = data["workflows"].pop(name)
         write_json(home() / "library.json", data)
     return entry["path"]
@@ -404,6 +446,8 @@ def update_one(name, entry):
     from . import gitops
     if entry.get("source") == "plugin-example":
         return "skipped", PLUGIN_NOTE, {}
+    if entry.get("source") == "plugin":
+        return "skipped", plugin_note(entry.get("plugin", "?")), {}
     if entry.get("source") != "git":
         return "skipped", "your own folder: Durweg does not change it", {}
     if not managed(entry):

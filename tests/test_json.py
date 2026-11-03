@@ -89,6 +89,38 @@ class Json(CatalogCase):
         self.wf("_example", copies[0])
         self.assertEqual(Path(self.lib()["write-your-method"]["path"]), self.repo)
 
+    def test_another_plugin_s_workflows_follow_its_version(self):     # durweg-todo#1
+        import shutil
+        def plugin_copy(version):
+            root = self.tmp / "plugins" / "durweg-todo" / version / "workflows"
+            shutil.copytree(self.repo, root / "todo-daily")
+            return root / "todo-daily"
+        v1, v2 = plugin_copy("0.3.0"), plugin_copy("0.3.1")
+        self.assertIn("added", self.wf("_plugin_workflows", "durweg-todo", v1))
+        self.assertIn("unchanged", self.wf("_plugin_workflows", "durweg-todo", v1))
+        self.assertIn("moved", self.wf("_plugin_workflows", "durweg-todo", v2))
+        e = self.lib()["todo-daily"]
+        self.assertEqual((Path(e["path"]), e["source"], e["plugin"]), (v2, "plugin", "durweg-todo"))
+        j = one_json(self.wf("library", "update", "todo-daily", "--json"))
+        self.assertEqual(j["items"][0]["status"], "skipped")
+        self.assertIn("comes with the plugin durweg-todo", j["items"][0]["detail"])
+        self.assertIn("comes with the plugin", self.wf("publish", "todo-daily", expect=1))
+        self.assertIn("uninstall that plugin", self.wf("library", "remove", "todo-daily", expect=1))
+        [it] = [i for i in one_json(self.wf("library", "list", "--json"))["items"] if i["name"] == "todo-daily"]
+        self.assertTrue(it["builtin"])                                    # the page shows no Remove button
+        data = json.loads((Path(os.environ["DURWEG_HOME"]) / "library.json").read_text())
+        del data["workflows"]["todo-daily"]                               # as if the plugin was uninstalled
+        (Path(os.environ["DURWEG_HOME"]) / "library.json").write_text(json.dumps(data))
+        # the user's own todo-daily is left alone; a broken folder is reported, the rest goes on
+        self.wf("library", "add", str(self.repo), "--name", "todo-daily")
+        bad = self.tmp / "plugins" / "durweg-todo" / "0.3.1" / "workflows" / "todo-weekly"
+        bad.mkdir()
+        out = self.wf("_plugin_workflows", "durweg-todo", v2, bad)
+        self.assertIn("kept yours", out)
+        self.assertIn("todo-weekly", out)
+        self.assertIn("invalid", out)
+        self.assertEqual(Path(self.lib()["todo-daily"]["path"]), self.repo)
+
     def test_remove_then_add_again(self):
         self.wf("library", "add", "mini")
         self.wf("library", "remove", "mini")
