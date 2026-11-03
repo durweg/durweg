@@ -304,7 +304,7 @@ def _library_list_json():
             plats, valid = None, False
         items.append({"name": name, "path": str(p), "platforms": plats, "valid": valid,
                       "url": catalog.gitops.redact(e["url"]) if e.get("url") else None,
-                      "builtin": library.is_builtin(name, e) or e.get("source") == "plugin",
+                      "builtin": library.is_builtin(name, e) or (e.get("source") == "plugin" and p.exists()),
                       "comes_with": "durweg" if library.is_builtin(name, e) else e.get("plugin")})
     return emit({"items": items})
 
