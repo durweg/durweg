@@ -10,11 +10,34 @@
 </head>
 <body>
 <header><h1>Durweg</h1><span id="version"></span></header>
-<p id="notoken" class="warn" hidden>This page was refreshed or opened in a new tab, so it cannot make changes. Open it again with the link printed in the terminal, or run <code>durweg ui</code> again.</p>
-<main id="main">
-  <p>The management page is starting. Browsing and adding workflows come next.</p>
-  <button id="noop" type="button">Test a change (does nothing)</button>
-  <pre id="out" aria-live="polite"></pre>
+<p id="notoken" class="warn" hidden data-t="notoken"></p>
+<nav>
+  <button type="button" class="tab" data-tab="browse" data-t="tab_browse"></button>
+  <button type="button" class="tab" data-tab="installed" data-t="tab_installed"></button>
+  <button type="button" class="tab" data-tab="env" data-t="tab_env"></button>
+</nav>
+<main>
+  <section id="browse" hidden>
+    <p class="hint" data-t="browse_hint"></p>
+    <div id="browse_notes"></div>
+    <div id="browse_list" class="list"></div>
+  </section>
+  <section id="installed" hidden>
+    <p class="hint" data-t="installed_hint"></p>
+    <div id="installed_list" class="list"></div>
+  </section>
+  <section id="env" hidden>
+    <div id="env_list" class="list"></div>
+    <h2 data-t="catalogs"></h2>
+    <div id="catalog_list" class="list"></div>
+    <button type="button" id="recheck" data-t="recheck"></button>
+  </section>
+  <div id="copybox" class="copy" hidden>
+    <p id="copy_where"></p>
+    <input id="copy_text" type="text" readonly>
+    <button type="button" id="copy_btn" data-t="copy"></button>
+    <span id="copy_state"></span>
+  </div>
 </main>
 </body>
 </html>
