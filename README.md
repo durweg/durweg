@@ -166,6 +166,7 @@ you publish a private one, whether to make your private catalog ([publishing](do
 | Compare a run with the agent's own session files | The optional plugin [durweg-audit](https://github.com/durweg/durweg-audit) |
 | Find my settings, cases and run records | [Where your files are](docs/files.md) |
 | Install a ready-made workflow | Tell your agent "Show me the durweg workflows I can install", then `durweg library add <name>` ([catalogs](docs/workflow-format.md#catalogs)) |
+| Browse, add and update workflows in your browser instead of typing commands | `durweg ui` ([the management page](docs/ui.md)) |
 | Update Durweg and the workflows you installed | • `durweg update` ([updating](docs/update.md))<br>• As a Claude Code plugin: Durweg itself with `/plugin update durweg` ([plugin](docs/install-plugin.md#-updating-and-removing)) |
 | Share a workflow of yours (on GitHub, public or private) | Tell your agent "Publish <name> with durweg" ([publishing](docs/publish.md)) |
 | Remove Durweg | • `durweg uninstall`: keeps `~/Durweg` and your runs ([uninstall](docs/uninstall.md))<br>• As a Claude Code plugin: `/plugin uninstall durweg` |
