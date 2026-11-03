@@ -1,9 +1,10 @@
 """durweg ui: a management page on this computer (plan durweg-dev plans/20261103_durweg-ui.md).
 
-Step 2 of the plan: the security skeleton. The server binds 127.0.0.1 on a port the system picks,
+Steps 2 and 3 of the plan: the security skeleton and the read-only pages. The server binds 127.0.0.1 on a port the system picks,
 serves a fixed set of built-in files, and accepts a write only as a POST that carries the start
 token in the X-Durweg-Token header, the exact Host and a same-origin Origin (section 5). Reads are
-GETs and never write. Pages and actions come in steps 3 and 4; here the only action is "noop".
+GETs and never write. The changes (add, remove, update, catalogs) come in step 4; until then the
+only write is "noop".
 
 Standard library only; Python 3.9+.
 """
@@ -127,20 +128,57 @@ def write_refusal(method, headers, port, token):
     return None
 
 
+# ---------------------------------------------------------------- running durweg … --json
+# The only commands the page runs (plan section 9, UI-R-009): argv lists, no shell, the same
+# durweg as this one (python -m durweg), so the page and the command line give the same answers.
+PKG_PARENT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TAIL = 200
+
+
+def durweg_json(args, timeout=120):
+    """Run `durweg <args> --json`; its JSON object, or {"ok": False, "error": ...}. Never raises."""
+    from .gitops import redact
+    argv = [sys.executable, "-m", "durweg", *args, "--json"]
+    path = os.environ.get("PYTHONPATH")
+    env = dict(os.environ, PYTHONPATH=PKG_PARENT + (os.pathsep + path if path else ""))
+    try:
+        r = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL,
+                           env=env, cwd=os.path.expanduser("~"))
+    except subprocess.TimeoutExpired:
+        return {"schema": SCHEMA, "ok": False, "error": f"durweg {args[0]} did not finish in {timeout} s", "timeout": True}
+    except OSError as e:
+        return {"schema": SCHEMA, "ok": False, "error": f"durweg could not be started ({e.strerror})"}
+    try:
+        out = json.loads(r.stdout)
+        if not isinstance(out, dict):
+            raise ValueError
+    except ValueError:
+        tail = "\n".join(redact(r.stderr or r.stdout or "").splitlines()[-TAIL:])
+        return {"schema": SCHEMA, "ok": False, "error": f"durweg {args[0]} failed (exit {r.returncode})", "output": tail}
+    return out
+
+
+def _version_and_language():
+    from . import __version__
+    from .publish import config_value
+    lang = config_value("language")
+    return {"version": __version__, "language": lang if lang in ("en", "zh") else "en"}
+
+
 # ---------------------------------------------------------------- actions
 def action_noop(body):
     check_fields(body, ())
     return {"done": "nothing"}
 
 
-# Steps 3 and 4 add the read pages and the durweg … --json actions here (plan section 9, UI-R-009).
-READS = {"/api/ping": lambda: {"version": _version()}}
-WRITES = {"/api/noop": action_noop}
-
-
-def _version():
-    from . import __version__
-    return __version__
+READS = {   # path -> function returning the JSON object to send (it carries its own "ok")
+    "/api/ping": lambda: dict({"schema": SCHEMA, "ok": True}, **_version_and_language()),
+    "/api/available": lambda: durweg_json(["library", "available"]),
+    "/api/installed": lambda: durweg_json(["library", "list"]),
+    "/api/catalogs": lambda: durweg_json(["catalog", "list"]),
+    "/api/doctor": lambda: durweg_json(["doctor"]),
+}
+WRITES = {"/api/noop": action_noop}   # step 4 adds the changes
 
 
 # ---------------------------------------------------------------- built-in files
@@ -195,10 +233,7 @@ class Handler(BaseHTTPRequestHandler):
             body, ctype = _static(path)
             return self._send(200, body, ctype)
         if path in READS:
-            try:
-                return self._send(200, dict({"schema": SCHEMA, "ok": True}, **READS[path]()))
-            except BadRequest as e:
-                return self._error(e.status, str(e))
+            return self._send(200, READS[path]())
         if path in WRITES:
             return self._error(405, "writes are POST only")
         return self._error(404, "not found")

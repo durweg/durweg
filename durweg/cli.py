@@ -284,7 +284,62 @@ def cmd_render(a):
     return 0
 
 
+JSON_SCHEMA = 1
+
+
+def emit(obj):
+    """--json: stdout holds exactly one JSON object (plan durweg-ui UI-R-009)."""
+    print(json.dumps(dict({"schema": JSON_SCHEMA, "ok": True}, **obj), ensure_ascii=False))
+    return 0
+
+
+def _no_json_yet(a, what):
+    if getattr(a, "json", False):
+        raise WfError(f"--json is not available for {what} yet")
+
+
+def _library_list_json():
+    from . import catalog
+    items = []
+    for name, e in sorted(library.entries().items()):
+        p = Path(e["path"])
+        try:
+            plats, valid = list(workflow.load(p).data.get("platforms") or workflow.PLATFORMS), True
+        except WfError:
+            plats, valid = None, False
+        items.append({"name": name, "path": str(p), "platforms": plats, "valid": valid,
+                      "url": catalog.gitops.redact(e["url"]) if e.get("url") else None})
+    return emit({"items": items})
+
+
+def _available_json():
+    from . import catalog
+    lib = library.entries()
+    cats = catalog.enabled()
+    items, notes = [], []
+    for cid in sorted(cats):
+        found, note = catalog.read(cid, cats[cid])
+        if note:
+            notes.append(note)
+        for name, e in sorted((found or {}).items()):
+            as_ = next((n for n, le in sorted(lib.items()) if le.get("url") and catalog.same_url(le["url"], e["url"])), None)
+            plats = None
+            if as_:
+                try:
+                    plats = list(workflow.load(Path(lib[as_]["path"])).data.get("platforms") or workflow.PLATFORMS)
+                except WfError:
+                    plats = None
+            items.append({"ref": f"{cid}:{name}", "catalog": cid, "name": name, "title": e["title"],
+                          "summary": e["summary"], "installed_as": as_, "platforms": plats})
+    return emit({"catalogs_on": sorted(cats), "items": items, "notes": notes})
+
+
 def cmd_library(a):
+    if a.json and a.action == "list":
+        return _library_list_json()
+    if a.json and a.action == "available":
+        return _available_json()
+    _no_json_yet(a, f"library {a.action}")
     if a.action in ("add", "remove") and not a.target:
         raise WfError(f"durweg library {a.action} needs a "
                       f"{'name, <catalog>:<name>, folder or git address' if a.action == 'add' else 'name'}")
@@ -414,6 +469,10 @@ def cmd_catalog(a):
         print(f"your private catalog is {cid}: {catalog.gitops.redact(catalog.configured()[cid]['url'])}\n"
               f"on another computer: durweg catalog add {cid} <this address>")
         return 0
+    if a.action == "list" and a.json:
+        return emit({"items": [{"id": cid, "on": not e.get("disabled"), "url": catalog.gitops.redact(e["url"]),
+                                "fetched": e.get("fetched")} for cid, e in sorted(catalog.configured().items())]})
+    _no_json_yet(a, f"catalog {a.action}")
     if a.action == "list":
         for cid, e in sorted(catalog.configured().items()):
             state = "off" if e.get("disabled") else "on"
@@ -495,6 +554,15 @@ def cmd_coexist(a):
     return 0
 
 
+def cmd_doctor(a):
+    from . import doctor
+    rep = doctor.report()
+    if a.json:
+        return emit(rep)
+    print(doctor.show(rep))
+    return 0
+
+
 def cmd_ui(a):
     from . import ui
     return ui.run(no_browser=a.no_browser)
@@ -562,6 +630,7 @@ def main(argv=None):
                         "update: a name (all when left out)")
     p.add_argument("--name")
     p.add_argument("--quiet", action="store_true", help="update: show only what changed or needs attention")
+    p.add_argument("--json", action="store_true", help="list, available: print one JSON object (for programs)")
     p = sub.add_parser("update", help="update Durweg itself to the newest release, then the catalogs and workflows")
     p = sub.add_parser("publish", help="put one of your workflows on GitHub (shows first; --yes does it)")
     p.add_argument("name", help="a workflow in your library, from your own folder")
@@ -583,6 +652,7 @@ def main(argv=None):
     p.add_argument("id", nargs="?", help="the catalog's name (public is the public catalog)")
     p.add_argument("url", nargs="?", help="add: the catalog's git address")
     p.add_argument("--yes", action="store_true", help="create-private: the user said yes to what was shown")
+    p.add_argument("--json", action="store_true", help="list: print one JSON object (for programs)")
     p = sub.add_parser("runs", help="list the runs started on this computer")
     p.add_argument("--rebuild", metavar="FOLDER", help="scan FOLDER for runs and add them to the index")
     p = sub.add_parser("config", help="show or change your settings: durweg config language en|zh, "
@@ -590,6 +660,8 @@ def main(argv=None):
     p.add_argument("key", nargs="?")
     p.add_argument("value", nargs="?")
     sub.add_parser("_coexist", help=argparse.SUPPRESS)    # install.sh: plugin copies next to this one
+    p = sub.add_parser("doctor", help="check this computer: agents, whether they have Durweg, GitHub sign-in")
+    p.add_argument("--json", action="store_true", help="print one JSON object (for programs)")
     p = sub.add_parser("ui", help="open the management page in your browser (this computer only)")
     p.add_argument("--no-browser", action="store_true", help="only print the link")
     p = sub.add_parser("uninstall", help="remove what the installer put on this computer (keeps ~/Durweg)")
@@ -607,11 +679,14 @@ def main(argv=None):
         library.ensure_plugin_example(root)
     fn = {"start": cmd_start, "begin": cmd_begin, "propose": cmd_propose, "confirm": cmd_confirm,
           "done": cmd_done, "reopen": cmd_reopen, "status": cmd_status, "render": cmd_render,
-          "check": cmd_check, "audit": cmd_audit, "library": cmd_library, "catalog": cmd_catalog, "update": cmd_update, "publish": cmd_publish, "runs": cmd_runs, "uninstall": cmd_uninstall, "config": cmd_config, "_coexist": cmd_coexist, "ui": cmd_ui}[a.cmd]
+          "check": cmd_check, "audit": cmd_audit, "library": cmd_library, "catalog": cmd_catalog, "update": cmd_update, "publish": cmd_publish, "runs": cmd_runs, "uninstall": cmd_uninstall, "config": cmd_config, "_coexist": cmd_coexist, "ui": cmd_ui, "doctor": cmd_doctor}[a.cmd]
     try:
         rc = fn(a)
     except WfError as e:
-        print(str(e), file=sys.stderr)
+        if getattr(a, "json", False):
+            print(json.dumps({"schema": JSON_SCHEMA, "ok": False, "error": str(e)}, ensure_ascii=False))
+        else:
+            print(str(e), file=sys.stderr)
         return getattr(e, "exit_code", 1)
     except OSError as e:
         if not cannot_write_home(e):
