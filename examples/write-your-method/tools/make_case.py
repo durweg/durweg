@@ -4,7 +4,7 @@
   make_case.py RUN
 
 Builds RUN/case/<name>.html from the run's own record, so nothing in it is made up: the method
-(steps/1-method.md), the confirmed steps (steps/2-steps.json), the user's own words at every
+(steps/1-method.md), the confirmed steps (steps/3-steps.json), the user's own words at every
 confirmation (.wf/state.json), the first run of the new workflow and its check (steps/5-try.json
 and that run's record, frozen into case/inputs.json), and the user's lessons (steps/6-lessons.md). Copies the page to
 ~/Durweg/cases/ ($DURWEG_HOME if set) and writes RUN/steps/6-case.json. The page holds no paths
@@ -31,8 +31,8 @@ TEXT = {
         "lessons": "Lessons", "use": "Use it yourself",
         "use_text": "With Durweg installed, put the workflow folder {name} into your library "
         "(durweg library add <folder> --name {name}) and tell your agent: \"Run {name} with durweg.\"",
-        "ids": {"describe": "Describe how you do it", "design": "Turn it into steps",
-                "build": "Build the workflow", "register": "Put it in your library",
+        "ids": {"describe": "Describe how you do it", "check": "Look for something that already does it",
+                "design": "Turn it into steps", "build": "Build the workflow and put it in your library",
                 "try": "Run your new workflow once"},
     },
     "zh": {
@@ -45,8 +45,8 @@ TEXT = {
         "lessons": "经验", "use": "自己用这个工作流",
         "use_text": "装好 Durweg 以后，把工作流文件夹 {name} 放进方法库"
         "（durweg library add <文件夹> --name {name}），然后对 agent 说：“用 durweg 运行 {name}”。",
-        "ids": {"describe": "描述你的方法", "design": "拆成步骤", "build": "生成工作流",
-                "register": "放进方法库", "try": "试跑一次"},
+        "ids": {"describe": "描述你的方法", "check": "找有没有现成的", "design": "拆成步骤",
+                "build": "生成工作流并放进方法库", "try": "试跑一次"},
     },
 }
 
@@ -131,6 +131,14 @@ def language():
         return "en"
 
 
+def final_name(run):
+    """The name chosen in step 6 (steps/6-name.json), else the design's."""
+    p = Path(run) / "steps/6-name.json"
+    if p.is_file():
+        return load(p)["name"]
+    return load(Path(run) / "steps/3-steps.json")["name"]
+
+
 def collect(run):
     """What the page needs from outside this run, frozen into case/inputs.json when the page is
     made, so later checks of this run do not depend on other runs or on the settings."""
@@ -143,8 +151,8 @@ def collect(run):
 def page(run, inputs):
     T = TEXT[inputs["language"]]
     lang = inputs["language"]
-    d = load(run / "steps/2-steps.json")
-    name, title = d["name"], d.get("title") or d["name"]
+    d = load(run / "steps/3-steps.json")
+    name, title = final_name(run), d.get("title") or d["name"]
     date = load(run / ".wf/state.json")["events"][0]["t"][:10]
     method = (run / "steps/1-method.md").read_text(encoding="utf-8")
     lessons = (run / "steps/6-lessons.md").read_text(encoding="utf-8")
@@ -153,7 +161,7 @@ def page(run, inputs):
         f"<tr><td>{i}</td><td><b>{e(s['title'])}</b></td><td>{e(s['do'])}</td><td>{e(s['deliver'])}</td>"
         f"<td>{T['yes'] if s.get('user') else T['no']}</td></tr>" for i, s in enumerate(d["steps"], 1))
     words = "".join(f"<p class='who'>{e(T['ids'].get(s, s))}</p><blockquote>{e(q)}</blockquote>"
-                    for s, q in confirms(run, skip=("case",)))
+                    for s, q in confirms(run, skip=("name",)))
     titles = {s["id"]: s["title"] for s in d["steps"]}
     try_words = "".join(f"<p class='who'>{e(titles.get(s, s))}</p><blockquote>{e(q)}</blockquote>"
                         for s, q in inputs["try_confirms"])
@@ -189,10 +197,10 @@ def main(argv):
     if len(argv) != 1:
         sys.exit(__doc__)
     run = Path(argv[0]).resolve()
-    for need in ("steps/1-method.md", "steps/2-steps.json", "steps/5-try.json", "steps/6-lessons.md"):
+    for need in ("steps/1-method.md", "steps/3-steps.json", "steps/5-try.json", "steps/6-lessons.md"):
         if not (run / need).is_file():
             sys.exit(f"{need} is missing; write it first")
-    name = load(run / "steps/2-steps.json")["name"]
+    name = final_name(run)
     inputs = collect(run)
     out = run / "case" / f"{name}.html"
     out.parent.mkdir(parents=True, exist_ok=True)

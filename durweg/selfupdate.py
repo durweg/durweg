@@ -164,4 +164,8 @@ def main_update():
     else:
         from .cli import _update
         rc = _update(None)
+    from .util import coexist_lines, plugin_root
+    if plugin_root() is None:              # the installer's copy: say so when a plugin copy is there too
+        for line in coexist_lines():
+            print(line)
     return 1 if status == "failed" else rc

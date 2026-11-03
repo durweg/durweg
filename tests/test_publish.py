@@ -662,3 +662,63 @@ class WentPublic(PublishCase):
         self.again("--catalog", "no", "--yes")
         self.set_vis("tester/durweg-mini", "PRIVATE")
         self.assertIn("does not push to it", self.again("--catalog", "no", expect=1))
+
+
+class LanguageAndOwner(PublishCase):
+    """v1.6.0: public pages use English for what people type; the default owner can be set (user 2026-11-03)."""
+
+    def test_cjk_in_typed_text_stops_a_public_publish(self):
+        (self.repo / "README.md").write_text("# mini\n\nTell your agent:\n\n> 看队列\n\nRun `durweg start mini 运行`.\n",
+                                             encoding="utf-8")
+        out = self.wf("publish", "mini", "--public", "--license", "MIT", "--catalog", "no", expect=1)
+        self.assertIn("README.md:5: > 看队列", out)
+        self.assertIn("README.md:7: durweg start mini 运行", out)
+        self.assertEqual(self.gh_state()["repos"], {})
+        out = self.wf("publish", "mini", "--public", "--license", "MIT", "--catalog", "no", "--language-ok")
+        self.assertIn("--language-ok: 2 place(s)", out)
+
+    def test_cjk_prose_and_translated_page_are_fine(self):
+        (self.repo / "README.md").write_text("# mini\n\nA small workflow (一个小工作流). Say `run mini`.\n",
+                                             encoding="utf-8")
+        (self.repo / "README_cn.md").write_text("# mini\n\n对 agent 说：`运行 mini`\n", encoding="utf-8")
+        out = self.wf("publish", "mini", "--public", "--license", "MIT", "--catalog", "no")
+        self.assertNotIn("not published", out)
+        self.assertNotIn("README is not in English", out)
+
+    def test_private_publish_is_not_checked(self):
+        (self.repo / "README.md").write_text("# mini\n\n> 看队列\n", encoding="utf-8")
+        out = self.wf("publish", "mini", "--private", "--catalog", "no")
+        self.assertNotIn("not published", out)
+
+    def test_readme_not_in_english_asks(self):
+        (self.repo / "README.md").write_text("# mini\n\n这个工作流每天整理待办，告诉你今天先做什么，然后记下结果。\n",
+                                             encoding="utf-8")
+        out = self.wf("publish", "mini", "--public", "--license", "MIT", "--catalog", "no")
+        self.assertIn("the README is not in English", out)
+        self.assertIn("write an English README.md",
+                      self.wf("publish", "mini", "--public", "--license", "MIT", "--catalog", "no",
+                              "--english-readme", "add", expect=1))
+        out = self.wf("publish", "mini", "--public", "--license", "MIT", "--catalog", "no", "--english-readme", "skip")
+        self.assertIn("published without an English README", out)
+
+    def test_catalog_entry_title_in_english_when_proposed(self):
+        wf_json = self.repo / "workflow.json"
+        data = json.loads(wf_json.read_text(encoding="utf-8"))
+        data["title"] = "每日回顾"
+        wf_json.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        out = self.wf("publish", "mini", "--public", "--license", "MIT", "--catalog", "yes", expect=1)
+        self.assertIn("catalog entry: title or summary", out)
+        out = self.wf("publish", "mini", "--public", "--license", "MIT", "--catalog", "no")   # not proposed
+        self.assertNotIn("catalog entry", out)
+
+    def test_publish_owner_from_config(self):
+        self.assertIn("publish-owner: not set", self.wf("config"))
+        self.wf("config", "publish-owner", "someorg")
+        out = self.wf("publish", "mini", "--private", "--catalog", "no")
+        self.assertIn("to: someorg/durweg-mini (private; owner from durweg config publish-owner)", out)
+        out = self.wf("publish", "mini", "--private", "--catalog", "no", "--repo", "tester/other")
+        self.assertIn("tester/other (private; owner from --repo)", out)
+        self.wf("config", "publish-owner", "none")
+        out = self.wf("publish", "mini", "--private", "--catalog", "no")
+        self.assertIn("to: tester/durweg-mini (private; owner from your GitHub account)", out)
+        self.wf("config", "publish-owner", "bad owner!", expect=1)

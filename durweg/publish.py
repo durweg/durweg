@@ -178,7 +178,60 @@ def files_of(wf, src, license_choice, case):
 
 
 # -- the plan ----------------------------------------------------------------------------------
-def prepare(name, visibility=None, repo=None, license_choice=None, case=None, catalog_answer=None):
+# -- public publishing: what users type must be in English (v1.6.0, user 2026-11-03) -------------
+CJK = re.compile(r"[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uff01-\uff60]")
+TRANSLATED = re.compile(r"_(?:cn|zh)\.md$")
+
+
+def _file_text(srcp, text):
+    if text is not None:
+        return text
+    try:
+        return Path(srcp).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return ""
+
+
+def typed_text_findings(files):
+    """CJK in what a reader of an English page types or copies: inline code, code blocks, quoted lines."""
+    out = []
+    for rel, srcp, text in files:
+        if not rel.endswith(".md") or TRANSLATED.search(rel):
+            continue
+        fence = False
+        for n, line in enumerate(_file_text(srcp, text).splitlines(), 1):
+            if line.lstrip().startswith("```"):
+                fence = not fence
+                continue
+            spans = [line] if fence or line.lstrip().startswith(">") else re.findall(r"`([^`]+)`", line)
+            for s in spans:
+                if CJK.search(s):
+                    out.append(f"{rel}:{n}: {s.strip()[:80]}")
+                    break
+    return out
+
+
+def english_readme(files):
+    """True when README.md reads as English (most letters are not CJK)."""
+    for rel, srcp, text in files:
+        if rel == "README.md":
+            body = _file_text(srcp, text)
+            cjk = len(CJK.findall(body))
+            latin = len(re.findall(r"[A-Za-z]", body))
+            return cjk * 3 <= latin          # a CJK character carries about three letters' worth of text
+    return False
+
+
+def config_value(key):
+    p = library.home() / "config.json"
+    try:
+        return json.loads(p.read_text(encoding="utf-8")).get(key) if p.is_file() else None
+    except ValueError:
+        return None
+
+
+def prepare(name, visibility=None, repo=None, license_choice=None, case=None, catalog_answer=None,
+            language_ok=False, english_readme_answer=None):
     """Everything that would happen, and the questions still open. Touches nothing."""
     entry, wf = _source(name)
     src = Path(entry["path"])
@@ -192,7 +245,12 @@ def prepare(name, visibility=None, repo=None, license_choice=None, case=None, ca
         if repo != record["repo"]:
             raise WfError(f"{name} was published to {record['repo']} before; Durweg pushes only there "
                           f"(to start again elsewhere, remove {stage})")
-    repo = repo or f"{owner}/durweg-{name}"
+    if repo:
+        repo_from = "--repo" if not record else "the earlier publishing"
+    else:
+        default_owner = config_value("publish_owner")
+        repo_from = "durweg config publish-owner" if default_owner else "your GitHub account"
+        repo = f"{default_owner or owner}/durweg-{name}"
     if not REPO.match(repo):
         raise WfError(f"--repo is owner/name, not {repo!r}")
     info = repo_info(repo)
@@ -243,6 +301,25 @@ def prepare(name, visibility=None, repo=None, license_choice=None, case=None, ca
         raise WfError("--license is one of MIT, Apache-2.0, CC-BY-4.0, none")
     files = files_of(wf, src, license_choice, case)
 
+    if visibility == "public":
+        found = typed_text_findings(files)
+        if catalog_answer == "yes" and p_entry_cjk(wf, name):   # the entry goes to the public catalog
+            found.append(f"catalog entry: title or summary in workflow.json is not English ({p_entry_cjk(wf, name)})")
+        if found and not language_ok:
+            raise WfError("not published: a public workflow's English pages and catalog entry use English for what "
+                          "people type (examples, trigger words, labels). Fix these, or pass --language-ok if they "
+                          "are meant that way:\n  " + "\n  ".join(found))
+        if found:
+            notes.append(f"--language-ok: {len(found)} place(s) with CJK text in what people type are kept")
+        if not english_readme(files):
+            if english_readme_answer is None:
+                questions.append("the README is not in English: add an English README.md first? "
+                                 "(--english-readme add, or --english-readme skip to publish as it is)")
+            elif english_readme_answer == "add":
+                raise WfError("not published: write an English README.md (keep the other language as README_cn.md), "
+                              "then run publish again")
+            else:
+                notes.append("published without an English README (--english-readme skip)")
     cat = _catalog_plan(name, visibility, owner, catalog_answer, has_license or
                         (license_choice and license_choice.lower() != "none"))
     if cat.get("question"):
@@ -251,7 +328,7 @@ def prepare(name, visibility=None, repo=None, license_choice=None, case=None, ca
     return {"name": name, "wf": wf, "src": src, "stage": stage, "repo": repo, "visibility": visibility,
             "owner": owner, "license": license_choice, "case": case, "files": files, "action": action,
             "catalog": cat, "questions": questions, "notes": notes, "record": record,
-            "went_public": went_public, "unlist": unlist}
+            "went_public": went_public, "unlist": unlist, "repo_from": repo_from}
 
 
 def _record(stage):
@@ -346,7 +423,8 @@ def _catalog_plan(name, visibility, owner, answer, licensed):
 
 def show(p):
     lines = [f"publish {p['name']} from {p['src']}",
-             f"  to: {p['repo']} ({p['visibility'] or '?'}) - {p['action']}",
+             f"  to: {p['repo']} ({p['visibility'] or '?'}; owner from {p.get('repo_from', 'your GitHub account')})"
+             f" - {p['action']}",
              "  files:"]
     lines += [f"    {rel}" + ("  (written by Durweg)" if srcp is None else "") for rel, srcp, _ in p["files"]]
     lines += [f"  {n}" for n in p["notes"]]
@@ -440,6 +518,13 @@ def publish(p):
     except (WfError, OSError, ValueError) as e:
         out.append(f"the workflow is published, but the catalog step did not work: {e}")
     return out
+
+
+def p_entry_cjk(wf, name):
+    """The catalog entry's title or summary when it is not English, else None."""
+    entry = {"title": wf.data.get("title") or name, "summary": wf.data.get("summary") or wf.data.get("title") or name}
+    bad = [v for v in entry.values() if CJK.search(v)]
+    return bad[0][:60] if bad else None
 
 
 def _entry(p, url):

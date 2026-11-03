@@ -126,10 +126,11 @@ another one), follow these steps.
 2. **Make a practice folder and go into it:** `mkdir -p ~/projects/first-method && cd ~/projects/first-method`.
    The record of this run goes there.
 3. **Start your agent** (step 3 of "Every day").
-4. **Tell it:** "Run write-your-method with durweg." Then answer its questions on how you do the
-   weekly report (collect, write, approve and send), and confirm the steps it shows you.
-5. **Write it up as a case (optional):** at the end it asks whether to write a case. If you want
-   one, tell it what you would tell others; it turns your method, the steps, your own words at each
+4. **Tell it:** "Run write-your-method with durweg." It asks what you want to have when the work is
+   done and how you do the weekly report now (collect, write, approve and send), looks for something
+   that already does it, suggests improvements, and you confirm the steps it shows you.
+5. **Name it, and write it up as a case (optional):** after the first run it asks what to call it, then
+   whether to write a case. If you want one, tell it what you would tell others; it turns your method, the steps, your own words at each
    confirmation and the first run's result into one web page in `~/Durweg/cases/`. Double-click it
    to open it in your browser, or send it to someone.
 
