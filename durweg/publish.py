@@ -125,6 +125,8 @@ def _source(name):
         raise WfError(f"no workflow named {name} in the library")
     if e.get("source") == "plugin-example":
         raise WfError(f"{name} comes with Durweg; publish only workflows in your own folders")
+    if e.get("source") == "plugin":
+        raise WfError(f"{name} comes with the plugin {e.get('plugin', '?')}; publish only workflows in your own folders")
     if e.get("source") != "folder":
         raise WfError(f"{name} was installed from git ({gitops.redact(e.get('url', ''))}); "
                       "publish only workflows in your own folders")
