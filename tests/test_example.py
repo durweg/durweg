@@ -95,6 +95,7 @@ class Example(WfCase):
         out = self.tool("register.py", run)
         lib_path = Path(os.environ["DURWEG_HOME"]) / "workflows" / "weekly-report"
         self.assertIn(str(lib_path), out)
+        self.assertIn("on this computer only and private: nothing was uploaded", out)      # durweg#14
         self.wf("library", "add", lib_path, "--name", "weekly-report")
         self.build_done(run)
         # try: run the generated workflow once
@@ -139,12 +140,39 @@ class Example(WfCase):
         self.wf("confirm", run, "name", "--quote", "keep it")
         self.wf("done", run, "name")
         self.assertIn("PASS", self.wf("check", run))
+        # durweg#14: the table of this run's files, after the last step
+        table = self.tool("overview.py", run)
+        for where in ("steps/1-method.md", "steps/2-check.md", "steps/3-steps.json", "generated/weekly-report/",
+                      f"{lib_path}/", "named/status-report/", "case/status-report.html", "steps/*.decision.json"):
+            self.assertIn(f"`{where}`", table)
+        self.assertIn("on this computer only, private, not uploaded", table)
         copy.unlink()                                       # the user moved the copy away
         self.wf("reopen", new, "approve", "--reason", "later change in the try run")
         self.assertIn("PASS", self.wf("check", run))
         # later changes in the library do not change the example's own history
         (lib_path / "workflow.json").write_text("{}", encoding="utf-8")
         self.assertIn("PASS", self.wf("check", run))
+
+    def test_overview_grows_with_the_run_and_speaks_the_language(self):   # durweg#14
+        self.wf("start", self.src, "first", "--runs", self.runs)
+        run = self.run = next(self.runs.glob("*_first"))
+        table = self.tool("overview.py", run)
+        self.assertIn("| Step | What | Where |", table)
+        self.assertNotIn("steps/1-method.md", table)                        # nothing yet
+        self.through_check(run)
+        table = self.tool("overview.py", run)
+        self.assertIn("`steps/1-method.md`", table)
+        self.assertIn("`steps/2-check.md`", table)
+        self.assertNotIn("generated/", table)
+        (Path(os.environ["DURWEG_HOME"])).mkdir(parents=True, exist_ok=True)
+        (Path(os.environ["DURWEG_HOME"]) / "config.json").write_text('{"language": "zh"}', encoding="utf-8")
+        self.assertIn("| 步骤 | 是什么 | 在哪 |", self.tool("overview.py", run))
+
+    def test_skill_says_what_it_is_and_where_things_are(self):           # durweg#14
+        skill = (EXAMPLE / "skills/write-your-method/SKILL.md").read_text(encoding="utf-8")
+        for words in ("Before anything else, say what this is", "overview.py RUN",
+                      "stop and ask the user to choose", "on this computer only", "private"):
+            self.assertIn(words, skill)
 
     def through_try(self):
         run = self.through_build()
