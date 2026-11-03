@@ -14,7 +14,7 @@
 #   DURWEG_UPDATE=1 (set by durweg update: keep the last choices, ask nothing)
 set -uo pipefail
 
-VERSION="${DURWEG_VERSION:-v1.6.0}"
+VERSION="${DURWEG_VERSION:-v1.7.0}"
 REPO="durweg/durweg"
 DATA="${XDG_DATA_HOME:-$HOME/.local/share}/durweg"
 BIN="$HOME/.local/bin"
@@ -251,7 +251,7 @@ if [ -z "${DURWEG_UPDATE:-}" ]; then
                                          "你的工作流现在没能更新；durweg update 会再试一次。"
 fi
 
-# ---- a plugin copy of Durweg next to this one: say so, never remove it (v1.6.0) -----------------
+# ---- a plugin copy of Durweg next to this one: say so, never remove it (v1.7.0) -----------------
 durweg _coexist 2>/dev/null || true
 
 # ---- the guide: the README on GitHub opens in the browser ---------------------------------------
