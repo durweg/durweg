@@ -11,6 +11,7 @@ from pathlib import Path
 
 from test_catalog import CatalogCase
 from durweg import doctor, ui
+from durweg.util import rmtree
 
 
 def one_json(text):
@@ -68,6 +69,26 @@ class Json(CatalogCase):
         (home / "library.json").write_text(json.dumps(data))
         self.wf("library", "remove", "write-your-method")
 
+    def test_the_installer_points_the_example_at_a_new_version(self):   # Durweg-Install.bat on update
+        import shutil
+        src = Path(__file__).resolve().parent.parent / "examples" / "write-your-method"
+        copies = []
+        for v in ("v1", "v2"):
+            c = self.tmp / "Local" / v
+            (c / "durweg").mkdir(parents=True)
+            (c / "durweg" / "__init__.py").write_text("")
+            shutil.copytree(src, c / "examples" / "write-your-method")
+            copies.append(c / "examples" / "write-your-method")
+        self.wf("_example", copies[0])
+        self.wf("_example", copies[1])
+        self.assertEqual(Path(self.lib()["write-your-method"]["path"]), copies[1])
+        self.wf("_example", self.repo, expect=1)                                  # not a Durweg copy's example
+        data = json.loads((Path(os.environ["DURWEG_HOME"]) / "library.json").read_text())
+        data["workflows"]["write-your-method"]["path"] = str(self.repo)           # the user's own
+        (Path(os.environ["DURWEG_HOME"]) / "library.json").write_text(json.dumps(data))
+        self.wf("_example", copies[0])
+        self.assertEqual(Path(self.lib()["write-your-method"]["path"]), self.repo)
+
     def test_remove_then_add_again(self):
         self.wf("library", "add", "mini")
         self.wf("library", "remove", "mini")
@@ -77,16 +98,14 @@ class Json(CatalogCase):
         self.assertEqual(one_json(self.wf("library", "available", "--json"))["items"][0]["installed_as"], "mini")
         self.wf("library", "remove", "mini")
         folder = Path(os.environ["DURWEG_HOME"]) / "workflows" / "mini"
-        import shutil
-        shutil.rmtree(folder / ".git")                                         # not a clone any more
+        rmtree(folder / ".git")                                         # not a clone any more
         out = self.wf("library", "add", "mini", expect=1)
         self.assertIn(f"durweg library add {folder}", out)
 
     def test_unreachable_catalog_is_a_note_not_a_failure(self):
         url = self.catalog("gone", {})
         self.wf("catalog", "add", "gone", url)
-        import shutil
-        shutil.rmtree(url)                                   # the remote disappears; the cached copy stays
+        rmtree(url)                                   # the remote disappears; the cached copy stays
         j = one_json(self.wf("library", "available", "--json"))
         self.assertTrue(j["ok"])
         self.assertTrue(any("gone" in n for n in j["notes"]))
@@ -133,8 +152,7 @@ class Json(CatalogCase):
 
     def test_update_reports_failures_as_not_ok(self):
         self.wf("library", "add", "mini")
-        import shutil
-        shutil.rmtree(self.mini_url)                         # its remote is gone
+        rmtree(self.mini_url)                         # its remote is gone
         j = one_json(self.wf("library", "update", "mini", "--json"))
         self.assertEqual(j["items"][0]["status"], "failed")
         self.assertFalse(j["ok"])
