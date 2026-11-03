@@ -308,9 +308,9 @@ $cfg | Add-Member -NotePropertyName language -NotePropertyValue $Lang -Force
 Write-Json $cfgPath $cfg
 $lib = Read-Json (Join-Path $DHome 'library.json')
 $ex = if ($lib -and $lib.workflows) { $lib.workflows.'write-your-method' } else { $null }
-if ($ex -and $ex.path -like "$Local*") { & $Launcher library remove write-your-method | Out-Null; $ex = $null }
-if (-not $ex) {
-    & $Launcher library add (Join-Path $New 'examples\write-your-method') --name write-your-method | Out-Null
+# the example comes with Durweg and cannot be removed: point its entry at this version's copy
+if (-not $ex -or $ex.path -like "$Local*") {
+    & $Launcher _example (Join-Path $New 'examples\write-your-method') | Out-Null
     if ($LASTEXITCODE -ne 0) { Stop-Install 'The example could not be added to the library.' '示例无法加入方法库。' }
 }
 Ok "Your folder: $DHome" "你的文件夹：$DHome"

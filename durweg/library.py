@@ -221,6 +221,25 @@ def is_builtin(name, entry):
     return path.parts[-2:] == ("examples", PLUGIN_EXAMPLE) and (path.parent.parent / "durweg" / "__init__.py").is_file()
 
 
+def point_example(path):
+    """The installer's step for the example (Windows: each version has its own folder): register
+    write-your-method at `path`, a Durweg copy's examples/write-your-method, or move the built-in entry
+    there. A workflow of the user's own called write-your-method is left alone."""
+    path = Path(os.path.normpath(Path(path).expanduser().absolute()))
+    workflow.load(path)                               # validates workflow.json
+    entry = {"path": str(path), "source": "folder", "added": now()}
+    if not is_builtin(PLUGIN_EXAMPLE, entry):
+        raise WfError(f"{path} is not the example of a Durweg copy")
+    with _IndexLock("library"):
+        data = _load("library.json", "workflows")
+        old = data["workflows"].get(PLUGIN_EXAMPLE)
+        if old and not is_builtin(PLUGIN_EXAMPLE, old) and Path(old.get("path", "")).exists():
+            return False                              # the user's own
+        data["workflows"][PLUGIN_EXAMPLE] = entry
+        write_json(home() / "library.json", data)
+    return True
+
+
 def remove(name):
     with _IndexLock("library"):
         data = _load("library.json", "workflows")

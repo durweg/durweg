@@ -568,6 +568,11 @@ def cmd_config(a):
     return 0
 
 
+def cmd_example(a):
+    library.point_example(a.path)
+    return 0
+
+
 def cmd_coexist(a):
     from .util import coexist_lines
     for line in coexist_lines():
@@ -682,6 +687,8 @@ def main(argv=None):
     p.add_argument("key", nargs="?")
     p.add_argument("value", nargs="?")
     sub.add_parser("_coexist", help=argparse.SUPPRESS)    # install.sh: plugin copies next to this one
+    p = sub.add_parser("_example", help=argparse.SUPPRESS)   # Durweg-Install.bat: the example of this version
+    p.add_argument("path")
     p = sub.add_parser("doctor", help="check this computer: agents, whether they have Durweg, GitHub sign-in")
     p.add_argument("--json", action="store_true", help="print one JSON object (for programs)")
     p = sub.add_parser("ui", help="open the management page in your browser (this computer only)")
@@ -701,7 +708,7 @@ def main(argv=None):
         library.ensure_plugin_example(root)
     fn = {"start": cmd_start, "begin": cmd_begin, "propose": cmd_propose, "confirm": cmd_confirm,
           "done": cmd_done, "reopen": cmd_reopen, "status": cmd_status, "render": cmd_render,
-          "check": cmd_check, "audit": cmd_audit, "library": cmd_library, "catalog": cmd_catalog, "update": cmd_update, "publish": cmd_publish, "runs": cmd_runs, "uninstall": cmd_uninstall, "config": cmd_config, "_coexist": cmd_coexist, "ui": cmd_ui, "doctor": cmd_doctor}[a.cmd]
+          "check": cmd_check, "audit": cmd_audit, "library": cmd_library, "catalog": cmd_catalog, "update": cmd_update, "publish": cmd_publish, "runs": cmd_runs, "uninstall": cmd_uninstall, "config": cmd_config, "_coexist": cmd_coexist, "ui": cmd_ui, "doctor": cmd_doctor, "_example": cmd_example}[a.cmd]
     try:
         rc = fn(a)
     except WfError as e:
