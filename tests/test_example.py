@@ -57,7 +57,7 @@ class Example(WfCase):
 
     def tool(self, name, run):
         r = subprocess.run([sys.executable, str(run / ".wf/workflow/tools" / name), str(run)],
-                           capture_output=True, text=True, env=os.environ.copy())
+                           capture_output=True, text=True, encoding="utf-8", env=os.environ.copy())
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         return r.stdout
 
