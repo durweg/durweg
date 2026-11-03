@@ -251,6 +251,9 @@ if [ -z "${DURWEG_UPDATE:-}" ]; then
                                          "你的工作流现在没能更新；durweg update 会再试一次。"
 fi
 
+# ---- a plugin copy of Durweg next to this one: say so, never remove it (v1.6.0) -----------------
+durweg _coexist 2>/dev/null || true
+
 # ---- the guide: the README on GitHub opens in the browser ---------------------------------------
 GUIDE="${DURWEG_GUIDE:-https://github.com/$REPO/blob/$VERSION/}$(t README.md README_cn.md)"
 say "Guide: $GUIDE" "教程：$GUIDE"

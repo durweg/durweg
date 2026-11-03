@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Step 3 of write-your-method (action): build the user's workflow from the confirmed design.
+"""Step 4 of write-your-method (action): build the user's workflow from the confirmed design.
 
   generate.py RUN
 
-Reads RUN/steps/2-steps.json and writes RUN/generated/<name>/ (workflow.json and
+Reads RUN/steps/3-steps.json and writes RUN/generated/<name>/ (workflow.json and
 skills/<name>/SKILL.md). Deterministic: the same design always gives the same files, so every
 step and every user confirmation of the design is in the workflow exactly as confirmed.
 Standard library only (it runs from the run's snapshot).
@@ -14,10 +14,11 @@ import sys
 from pathlib import Path
 
 
-def build(run):
-    design = json.loads((run / "steps/2-steps.json").read_text(encoding="utf-8"))
-    name, title, steps = design["name"], design["title"], design["steps"]
-    out = run / "generated" / name
+def build(run, name=None, root="generated"):
+    """name: the final name chosen in step 6 (rename.py), written under root='named'."""
+    design = json.loads((run / "steps/3-steps.json").read_text(encoding="utf-8"))
+    name, title, steps = name or design["name"], design["title"], design["steps"]
+    out = run / root / name
     if out.exists():
         shutil.rmtree(out)
     (out / "skills" / name).mkdir(parents=True)

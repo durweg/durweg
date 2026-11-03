@@ -199,3 +199,29 @@ def rmtree(path):
             shutil.rmtree(path, onexc=again)
         else:
             shutil.rmtree(path, onerror=again)
+
+
+def plugin_copies():
+    """Durweg installed as an agent plugin on this computer: [(agent, how to remove it)] (v1.6.0).
+    Claude Code lists installed plugins in plugins/installed_plugins.json (a leftover cache folder is not an
+    installation); Codex keeps an installed plugin's files under plugins/cache/<marketplace>/durweg/<version>/."""
+    import json
+    out = []
+    claude = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
+    try:
+        data = json.loads((claude / "plugins" / "installed_plugins.json").read_text(encoding="utf-8"))
+        if any(k.split("@")[0] == "durweg" for k in (data.get("plugins") or {})):
+            out.append(("Claude Code", "in Claude Code: /plugin uninstall durweg"))
+    except (OSError, ValueError, AttributeError):
+        pass
+    codex = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
+    if any((codex / "plugins" / "cache").glob("*/durweg/*/bin/durweg")):
+        out.append(("Codex", "codex plugin remove durweg@durweg"))
+    return out
+
+
+def coexist_lines():
+    """For the installer's copy: one line per plugin copy next to it, with how to remove it."""
+    return [f"You also have the Durweg plugin in {agent}; the two copies may be different versions. "
+            f"Keep one: {how}" for agent, how in plugin_copies()]
+

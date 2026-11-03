@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Gates of write-your-method (plan 2.7, V1-R-005). Read only.
 
+  check_generated.py check RUN      step 2: at most 3 existing tools, a choice of use / build on / build my own
   check_generated.py design RUN     the design: a usable name, unique step ids, 2-12 steps
   check_generated.py build RUN      generated/<name>/ is a valid Durweg workflow and matches the
                                     confirmed design: same steps in the same order, a user gate
                                     exactly where the design asks the user, every instruction found
   check_generated.py register RUN   the copy registered in the library is the frozen generated one
+  check_generated.py name RUN       step 6: a usable final name; a renamed copy is the generated workflow under that name
   check_generated.py case RUN       the case page is exactly what make_case.py builds from this run's
                                     record (no hand edits); the copy in ~/Durweg/cases is not checked,
                                     the user may move or share it
@@ -39,7 +41,7 @@ def tree_digest(folder):
 
 
 def design(run):
-    d, errs = load(run / "steps/2-steps.json"), []
+    d, errs = load(run / "steps/3-steps.json"), []
     if not ID.match(str(d.get("name", ""))):
         errs.append(f"name {d.get('name')!r}: use lower-case letters, digits and - (it becomes the command name)")
     steps = d.get("steps") or []
@@ -58,7 +60,7 @@ def build(run):
     errs = design(run)
     if errs:
         return errs
-    d = load(run / "steps/2-steps.json")
+    d = load(run / "steps/3-steps.json")
     out = run / "generated" / d["name"]
     if not (out / "workflow.json").is_file():
         return [f"generated/{d['name']}/workflow.json is missing: run tools/generate.py"]
@@ -94,7 +96,7 @@ def build(run):
 
 def register(run):
     rec, errs = load(run / "steps/4-register.json"), []
-    d = load(run / "steps/2-steps.json")
+    d = load(run / "steps/3-steps.json")
     if rec.get("name") != d.get("name"):
         errs.append(f"registered name {rec.get('name')!r} is not the design's {d.get('name')!r}")
     frozen = tree_digest(run / "generated" / d["name"])
@@ -102,6 +104,41 @@ def register(run):
         errs.append("the registered copy is not the generated workflow of this run (digest differs)")
     if not str(rec.get("library_path", "")).strip():
         errs.append("library_path is missing")
+    return errs
+
+
+CHOICE = re.compile(r"^- Choice:\s*(use existing|build on .+|build my own)\s*$", re.M | re.I)
+
+
+def check(run):
+    t = (run / "steps/2-check.md").read_text(encoding="utf-8")
+    m = re.search(r"^## Existing tools\s*$(.*?)(?=^## |\Z)", t, re.M | re.S)
+    tools = [l for l in (m.group(1) if m else "").splitlines() if l.strip().startswith("- ")]
+    errs = []
+    if not tools:
+        errs.append("'## Existing tools': list what was found (at most 3), or one line saying nothing was found")
+    if len(tools) > 3:
+        errs.append(f"{len(tools)} existing tools: show at most 3, the closest ones")
+    if not CHOICE.search(t):
+        errs.append("'## Choice' needs '- Choice: use existing', '- Choice: build on <tool>' or '- Choice: build my own'")
+    return errs
+
+
+def name(run):
+    rec = load(run / "steps/6-name.json")
+    d = load(run / "steps/3-steps.json")
+    errs = []
+    if not ID.match(str(rec.get("name", ""))):
+        return [f"name {rec.get('name')!r}: use lower-case letters, digits and -"]
+    if rec["name"] == d["name"]:
+        return []                                   # kept the name used so far
+    out = run / "named" / rec["name"]
+    if not (out / "workflow.json").is_file():
+        return [f"named/{rec['name']}/ is missing: run tools/rename.py"]
+    if load(out / "workflow.json").get("id") != rec["name"]:
+        errs.append("the renamed workflow's id is not the new name")
+    if rec.get("digest") != tree_digest(out):
+        errs.append("the renamed copy changed after rename.py wrote it")
     return errs
 
 
@@ -130,10 +167,11 @@ def case(run):
 
 
 def main(argv):
-    if len(argv) != 2 or argv[0] not in ("design", "build", "register", "case"):
+    if len(argv) != 2 or argv[0] not in ("check", "design", "build", "register", "name", "case"):
         sys.exit(__doc__)
     run = Path(argv[1]).resolve()
-    errs = {"design": design, "build": build, "register": register, "case": case}[argv[0]](run)
+    errs = {"check": check, "design": design, "build": build, "register": register, "name": name,
+            "case": case}[argv[0]](run)
     for e in errs:
         print(e)
     return 1 if errs else 0

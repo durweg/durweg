@@ -390,7 +390,7 @@ def cmd_publish(a):
     from . import publish
     vis = "public" if a.public else "private" if a.private else None
     p = publish.prepare(a.name, visibility=vis, repo=a.repo, license_choice=a.license, case=a.case,
-                        catalog_answer=a.catalog)
+                        catalog_answer=a.catalog, language_ok=a.language_ok, english_readme_answer=a.english_readme)
     if not a.yes:
         print(publish.show(p))
         return 0
@@ -464,15 +464,34 @@ def cmd_config(a):
     except ValueError:
         raise WfError(f"{p} cannot be read; fix or delete it")
     if a.key:
-        if a.key != "language" or a.value not in ("en", "zh"):
-            raise WfError("durweg config language en|zh")
-        cfg["language"] = a.value
+        if a.key == "language" and a.value in ("en", "zh"):
+            cfg["language"] = a.value
+            msg = f"language: {a.value} (agents use it from their next step on)"
+        elif a.key == "publish-owner" and a.value:
+            if a.value == "none":
+                cfg.pop("publish_owner", None)
+                msg = "publish-owner: not set (durweg publish uses your GitHub account)"
+            elif re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]{0,38}", a.value):
+                cfg["publish_owner"] = a.value
+                msg = f"publish-owner: {a.value} (new workflows from durweg publish go to {a.value}/durweg-<name>)"
+            else:
+                raise WfError("durweg config publish-owner <GitHub user or organization> | none")
+        else:
+            raise WfError("durweg config language en|zh, or durweg config publish-owner <owner>|none")
         p.parent.mkdir(parents=True, exist_ok=True)
         write_json(p, cfg)
-        print(f"language: {a.value} (agents use it from their next step on)")
+        print(msg)
     else:
         lang = cfg.get("language")
         print(f"{p}\nlanguage: " + (lang or "en (not set yet; run: durweg config language en|zh)"))
+        print("publish-owner: " + (cfg.get("publish_owner") or "not set (your GitHub account)"))
+    return 0
+
+
+def cmd_coexist(a):
+    from .util import coexist_lines
+    for line in coexist_lines():
+        print(line)
     return 0
 
 
@@ -544,7 +563,11 @@ def main(argv=None):
     g = p.add_mutually_exclusive_group()
     g.add_argument("--public", action="store_true")
     g.add_argument("--private", action="store_true")
-    p.add_argument("--repo", help="owner/name on GitHub (default: <you>/durweg-<name>)")
+    p.add_argument("--repo", help="owner/name on GitHub (default: <publish-owner or you>/durweg-<name>)")
+    p.add_argument("--language-ok", action="store_true",
+                   help="public: keep CJK text in examples, trigger words or labels of the English pages on purpose")
+    p.add_argument("--english-readme", choices=["add", "skip"],
+                   help="public, README not in English: add one first, or skip and publish as it is")
     p.add_argument("--license", help="MIT, Apache-2.0, CC-BY-4.0 or none (when the folder has no LICENSE)")
     p.add_argument("--case", help="a case page from ~/Durweg/cases/ to include")
     p.add_argument("--catalog", choices=["yes", "no"], help="public: propose it to the public catalog; "
@@ -557,9 +580,11 @@ def main(argv=None):
     p.add_argument("--yes", action="store_true", help="create-private: the user said yes to what was shown")
     p = sub.add_parser("runs", help="list the runs started on this computer")
     p.add_argument("--rebuild", metavar="FOLDER", help="scan FOLDER for runs and add them to the index")
-    p = sub.add_parser("config", help="show or change your settings: durweg config language en|zh")
+    p = sub.add_parser("config", help="show or change your settings: durweg config language en|zh, "
+                                     "durweg config publish-owner <owner>|none")
     p.add_argument("key", nargs="?")
     p.add_argument("value", nargs="?")
+    sub.add_parser("_coexist", help=argparse.SUPPRESS)    # install.sh: plugin copies next to this one
     p = sub.add_parser("uninstall", help="remove what the installer put on this computer (keeps ~/Durweg)")
     p.add_argument("--dry-run", action="store_true")
     p = sub.add_parser("status")
@@ -575,7 +600,7 @@ def main(argv=None):
         library.ensure_plugin_example(root)
     fn = {"start": cmd_start, "begin": cmd_begin, "propose": cmd_propose, "confirm": cmd_confirm,
           "done": cmd_done, "reopen": cmd_reopen, "status": cmd_status, "render": cmd_render,
-          "check": cmd_check, "audit": cmd_audit, "library": cmd_library, "catalog": cmd_catalog, "update": cmd_update, "publish": cmd_publish, "runs": cmd_runs, "uninstall": cmd_uninstall, "config": cmd_config}[a.cmd]
+          "check": cmd_check, "audit": cmd_audit, "library": cmd_library, "catalog": cmd_catalog, "update": cmd_update, "publish": cmd_publish, "runs": cmd_runs, "uninstall": cmd_uninstall, "config": cmd_config, "_coexist": cmd_coexist}[a.cmd]
     try:
         rc = fn(a)
     except WfError as e:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Step 4 of write-your-method (action): copy the frozen generated workflow into the library folder.
+"""Step 4 of write-your-method (action, after generate.py): copy the frozen generated workflow into the library folder.
 
   register.py RUN
 
@@ -27,7 +27,7 @@ def main(argv):
     if len(argv) != 1:
         sys.exit(__doc__)
     run = Path(argv[0]).resolve()
-    name = json.loads((run / "steps/2-steps.json").read_text(encoding="utf-8"))["name"]
+    name = json.loads((run / "steps/3-steps.json").read_text(encoding="utf-8"))["name"]
     src = run / "generated" / name
     home = Path(os.environ.get("DURWEG_HOME") or Path.home() / "Durweg")
     dest = home / "workflows" / name
