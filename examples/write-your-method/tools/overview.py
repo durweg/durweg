@@ -88,6 +88,11 @@ def table(run, lang=None):
 def main(argv):
     if len(argv) != 1:
         sys.exit(__doc__)
+    if hasattr(sys.stdout, "reconfigure"):          # Windows consoles default to a legacy code page
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        except (ValueError, OSError):
+            pass
     print(table(argv[0]))
     return 0
 
