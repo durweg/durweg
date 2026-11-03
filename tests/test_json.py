@@ -93,7 +93,7 @@ class Json(CatalogCase):
         import shutil
         def plugin_copy(version):
             root = self.tmp / "plugins" / "durweg-todo" / version / "workflows"
-            shutil.copytree(self.repo, root / "todo-daily")
+            shutil.copytree(self.repo, root / "todo-daily", ignore=shutil.ignore_patterns(".git"))
             return root / "todo-daily"
         v1, v2 = plugin_copy("0.3.0"), plugin_copy("0.3.1")
         self.assertIn("added", self.wf("_plugin_workflows", "durweg-todo", v1))
@@ -108,7 +108,7 @@ class Json(CatalogCase):
         self.assertIn("uninstall that plugin", self.wf("library", "remove", "todo-daily", expect=1))
         [it] = [i for i in one_json(self.wf("library", "list", "--json"))["items"] if i["name"] == "todo-daily"]
         self.assertTrue(it["builtin"])                                    # the page shows no Remove button
-        shutil.rmtree(v2.parent.parent)                                   # the plugin was uninstalled
+        rmtree(v2.parent.parent)                                          # the plugin was uninstalled
         self.assertIn("removed todo-daily", self.wf("library", "remove", "todo-daily"))   # now it can go
         # the user's own todo-daily is left alone; a broken folder is reported, the rest goes on
         self.wf("library", "add", str(self.repo), "--name", "todo-daily")
