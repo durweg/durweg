@@ -12,7 +12,7 @@ const TEXT = {
   en: {
     notoken: "This page was refreshed or opened in a new tab, so it cannot make changes. Open it again with the link printed in the terminal, or run durweg ui again.",
     tab_browse: "Browse", tab_installed: "Installed", tab_env: "This computer",
-    browse_hint: "Workflows in the catalogs that are switched on. Adding and removing come in the next version of this page; for now the command is shown.",
+    browse_hint: "Workflows in the catalogs that are switched on.",
     installed_hint: "Workflows in your library. To run one, open your agent in your project folder and say the sentence below.",
     catalogs: "Catalogs", recheck: "Check again", copy: "Copy",
     loading: "Loading…", none: "Nothing here.", installed_as: "installed as", not_installed: "not installed",
@@ -25,11 +25,22 @@ const TEXT = {
     gh_missing: "gh is not installed (needed only for private catalogs and publishing)",
     gh_in: (a) => `GitHub: signed in as ${a}`, gh_out: "GitHub: not signed in. In a terminal run:",
     gh_unknown: "GitHub: could not tell", version: (v) => `v${v}`,
+    update_all: "Update everything", restart: "Durweg was updated. Close this page, stop durweg ui (Ctrl-C) and run durweg ui again.",
+    catalog_id: "catalog name, e.g. team", catalog_url: "https://… or git@host:path (empty for public)", catalog_add: "Add catalog",
+    private_preview: "Make my private catalog…", private_create: "Yes, do it", tasks: "Changes",
+    name_taken: (n) => `Your library already has a workflow named ${n} (from your own folder or another address).`,
+    add: "Add", remove: "Remove", update: "Update", switch_off: "Switch off",
+    confirm_remove: (n) => `Remove ${n} from your library? Its folder stays on this computer.`,
+    confirm_catalog_remove: (id) => id === "public" ? "Switch the public catalog off? You can switch it on again." : `Remove catalog ${id}? Workflows installed from it stay.`,
+    confirm_update_all: "Update Durweg itself, the catalogs and all workflows? This can take some minutes.",
+    would: (w, a) => `As ${a || "?"}, this would ${w}. Nothing has been done yet.`,
+    state: { queued: "waiting", running: "running…", success: "done", partial: "partly done", failed: "failed", timeout: "took too long" },
+    busy: "Another change is running; the buttons come back when it ends.",
   },
   zh: {
     notoken: "这个页面被刷新过或是在新标签页打开的，不能做修改。请用终端里打印的链接重新打开，或者再运行一次 durweg ui。",
     tab_browse: "浏览", tab_installed: "已装", tab_env: "这台电脑",
-    browse_hint: "已打开的目录里的工作流。加入和移除在这个页面的下一版里做；现在先给出命令。",
+    browse_hint: "已打开的目录里的工作流。",
     installed_hint: "你方法库里的工作流。要运行，在你的项目文件夹里打开 agent，说下面这句话。",
     catalogs: "目录", recheck: "重新检查", copy: "复制",
     loading: "加载中…", none: "这里还没有。", installed_as: "已装为", not_installed: "未装",
@@ -42,6 +53,17 @@ const TEXT = {
     gh_missing: "没有装 gh（只有私人目录和发布要用）",
     gh_in: (a) => `GitHub：已登录 ${a}`, gh_out: "GitHub：未登录。在终端里运行：",
     gh_unknown: "GitHub：查不到", version: (v) => `v${v}`,
+    update_all: "全部更新", restart: "Durweg 已更新。请关闭这个页面，在终端里停掉 durweg ui（Ctrl-C），再运行一次 durweg ui。",
+    catalog_id: "目录名，例如 team", catalog_url: "https://… 或 git@主机:路径（公开目录留空）", catalog_add: "加入目录",
+    private_preview: "建我的私人目录…", private_create: "确认，照做", tasks: "改动",
+    name_taken: (n) => `你的方法库里已经有一个叫 ${n} 的工作流（来自你自己的文件夹或别的地址）。`,
+    add: "加入", remove: "移除", update: "更新", switch_off: "关掉",
+    confirm_remove: (n) => `从方法库移除 ${n}？它的文件夹会留在这台电脑上。`,
+    confirm_catalog_remove: (id) => id === "public" ? "关掉公开目录？以后可以再打开。" : `移除目录 ${id}？从它装的工作流会留着。`,
+    confirm_update_all: "更新 Durweg 本身、所有目录和所有工作流？可能要几分钟。",
+    would: (w, a) => `以 ${a || "?"} 的身份，将会：${w}。现在还什么都没做。`,
+    state: { queued: "排队中", running: "进行中…", success: "完成", partial: "部分完成", failed: "失败", timeout: "超时" },
+    busy: "另一个改动正在进行；结束后按钮会恢复。",
   },
 };
 let T = TEXT.en;
@@ -58,6 +80,87 @@ function code(text) { return el("code", null, text); }
 async function read(path) {
   const r = await fetch(path, { credentials: "omit", cache: "no-store" });
   return r.json();
+}
+
+let busy = false;
+function button(label, onClick) {
+  const b = el("button", "write", label); b.type = "button";
+  b.addEventListener("click", onClick);
+  return b;
+}
+function setWritable() {   // no token, or a change running: every change button is grey
+  for (const b of document.querySelectorAll("button.write")) b.disabled = !token || busy;
+}
+async function change(body) {
+  if (!token || busy) return null;
+  busy = true; setWritable();
+  try {
+    const r = await fetch("/api/task", {
+      method: "POST", credentials: "omit", cache: "no-store",
+      headers: { "Content-Type": "application/json", "X-Durweg-Token": token },
+      body: JSON.stringify(body),
+    });
+    const j = await r.json();
+    if (!j.ok) { alert(j.error || "?"); busy = false; setWritable(); return null; }
+    pollTasks();
+    return j.task;
+  } catch (e) { alert(String(e)); busy = false; setWritable(); return null; }
+}
+
+let polling = null;
+const RELOAD = { "library-add": ["browse", "installed"], "library-remove": ["browse", "installed"],
+  "library-update": ["browse", "installed"], "update": ["browse", "installed", "env"],
+  "catalog-add": ["browse", "env"], "catalog-remove": ["browse", "env"], "private-create": ["browse", "env"] };
+const seenDone = new Set();
+async function pollTasks() {
+  if (polling) return;
+  polling = true;
+  try {
+    for (;;) {
+      const j = await read("/api/tasks");
+      showTasks(j);
+      const running = j.tasks.some((t) => t.state === "queued" || t.state === "running");
+      for (const t of j.tasks) {
+        if (running || seenDone.has(t.id) || t.state === "queued" || t.state === "running") continue;
+        seenDone.add(t.id);
+        for (const tab of RELOAD[t.action] || []) loaded[tab] = false;
+        if (t.action === "private-preview") showPreview(t.result);
+      }
+      busy = running; setWritable();
+      if (!running) { reloadOpenTab(); break; }
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+  } finally { polling = null; }
+}
+
+function showTasks(j) {
+  document.getElementById("restart").hidden = !j.restart_ui;
+  const box = clear("tasks_list");
+  document.getElementById("tasks_box").hidden = !j.tasks.length;
+  for (const t of j.tasks) {
+    const card = el("div", "card task " + t.state);
+    const h = el("div", "row");
+    h.append(el("strong", null, t.label), el("span", t.state === "success" ? "good" : t.state === "running" || t.state === "queued" ? "muted" : "error", T.state[t.state] || t.state));
+    card.append(h);
+    const r = t.result;
+    if (r) {
+      if (r.error) card.append(el("p", "error", r.error));
+      if (r.durweg) card.append(el("p", null, `Durweg: ${r.durweg.status} — ${r.durweg.detail}`));
+      for (const it of r.items || []) if (it.status) card.append(el("p", it.status === "failed" ? "error" : "muted", `${it.name}: ${it.status}${it.detail ? " — " + it.detail : ""}`));
+      for (const n of [].concat(r.notes || [], r.note ? [r.note] : [])) card.append(el("p", "warn", n));
+      if (r.folder_kept) card.append(el("p", "muted path", r.folder_kept));
+      if (r.output) card.append(el("pre", null, r.output));
+    }
+    box.append(card);
+  }
+}
+
+function showPreview(r) {
+  const box = document.getElementById("private_box");
+  if (!r || !r.ok || !r.would) { box.hidden = true; return; }
+  box.hidden = false;
+  box.dataset.would = r.would;
+  document.getElementById("private_would").textContent = T.would(r.would, r.account);
 }
 
 function failed(box, j) {
@@ -99,13 +202,14 @@ async function loadBrowse() {
       const b = el("button", null, T.run); b.type = "button";
       b.addEventListener("click", () => showCopy(it.installed_as));
       card.append(b);
+    } else if (it.name_in_library) {
+      card.append(el("p", "muted", T.name_taken(it.name)));
     } else {
-      const p = el("p", "muted", `${T.add_cmd}: `);
-      p.append(code(`durweg library add ${it.ref}`));
-      card.append(p);
+      card.append(button(T.add, () => change({ action: "library-add", ref: it.ref })));
     }
     box.append(card);
   }
+  setWritable();
 }
 
 async function loadInstalled() {
@@ -122,9 +226,13 @@ async function loadInstalled() {
     card.append(h, el("p", "muted path", it.url || it.path));
     const b = el("button", null, T.run); b.type = "button";
     b.addEventListener("click", () => showCopy(it.name));
-    card.append(b);
+    const row = el("div", "row");
+    row.append(b, button(T.update, () => change({ action: "library-update", name: it.name })),
+      button(T.remove, () => { if (confirm(T.confirm_remove(it.name))) change({ action: "library-remove", name: it.name }); }));
+    card.append(row);
     box.append(card);
   }
+  setWritable();
 }
 
 async function loadEnv() {
@@ -153,16 +261,23 @@ async function loadEnv() {
     const row = el("div", "row");
     row.append(el("strong", null, it.id), el("span", it.on ? "good" : "muted", it.on ? T.on : T.off),
       el("span", "muted path", it.url + (it.fetched ? ` · ${T.fetched} ${it.fetched}` : "")));
+    if (it.on) row.append(button(it.id === "public" ? T.switch_off : T.remove,
+      () => { if (confirm(T.confirm_catalog_remove(it.id))) change({ action: "catalog-remove", id: it.id }); }));
+    else if (it.id === "public") row.append(button(T.add, () => change({ action: "catalog-add", id: "public" })));
     cats.append(row);
   }
+  setWritable();
 }
 
 const LOAD = { browse: loadBrowse, installed: loadInstalled, env: loadEnv };
 const loaded = {};
-function openTab(name) {
+let current = "browse";
+function reloadOpenTab() { if (!loaded[current]) openTab(current, true); }
+function openTab(name, keepCopy) {
+  current = name;
   for (const s of document.querySelectorAll("main > section")) s.hidden = s.id !== name;
   for (const b of document.querySelectorAll(".tab")) b.setAttribute("aria-pressed", String(b.dataset.tab === name));
-  document.getElementById("copybox").hidden = true;
+  if (!keepCopy) document.getElementById("copybox").hidden = true;
   if (!loaded[name]) { loaded[name] = true; LOAD[name]().catch((e) => failed(clear(name + "_list"), { error: String(e) })); }
 }
 
@@ -175,6 +290,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("version").textContent = T.version(v.version);
   } catch (e) { /* the tabs show their own errors */ }
   for (const n of document.querySelectorAll("[data-t]")) n.textContent = T[n.dataset.t];
+  for (const n of document.querySelectorAll("[data-ph]")) n.placeholder = T[n.dataset.ph];
+  document.getElementById("update_all").addEventListener("click", () => { if (confirm(T.confirm_update_all)) change({ action: "update" }); });
+  document.getElementById("catalog_form").addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    const id = document.getElementById("catalog_id").value.trim(), url = document.getElementById("catalog_url").value.trim();
+    change(url ? { action: "catalog-add", id, url } : { action: "catalog-add", id });
+  });
+  document.getElementById("private_preview").addEventListener("click", () => {
+    document.getElementById("private_box").hidden = true;
+    change({ action: "private-preview" });
+  });
+  document.getElementById("private_create").addEventListener("click", () => {
+    change({ action: "private-create", would: document.getElementById("private_box").dataset.would || "" });
+    document.getElementById("private_box").hidden = true;
+  });
+  setWritable();
+  pollTasks();
   for (const b of document.querySelectorAll(".tab")) b.addEventListener("click", () => openTab(b.dataset.tab));
   document.getElementById("recheck").addEventListener("click", () => { loaded.env = false; openTab("env"); });
   document.getElementById("copy_btn").addEventListener("click", async () => {

@@ -133,13 +133,80 @@ class Server(unittest.TestCase):
         self.assertEqual(self.post(body="{" + " " * (ui.MAX_BODY + 1) + "}")[0], 413)
         self.assertEqual(self.post(path="/api/other")[0], 404)
 
-    def test_one_change_at_a_time(self):
-        self.srv.write_lock.acquire()
+    def task(self, **body):
+        return self.post(path="/api/task", body=json.dumps(body))
+
+    def wait(self, tid, states=("success", "partial", "failed", "timeout")):
+        for _ in range(200):
+            for tk in self.req("GET", "/api/tasks", {"Host": f"127.0.0.1:{self.port}"})[3]["tasks"]:
+                if tk["id"] == tid and tk["state"] in states:
+                    return tk
+            threading.Event().wait(0.05)
+        self.fail(f"task {tid} never reached {states}")
+
+    def test_tasks_run_one_at_a_time_and_a_double_click_is_one_task(self):
+        gate, calls = threading.Event(), []
+
+        def fake(args, timeout=0):
+            calls.append(args)
+            gate.wait(5)
+            return {"schema": 1, "ok": True, "name": "x"}
+        old, ui.durweg_json = ui.durweg_json, fake
         try:
-            self.assertEqual(self.post()[0], 409)
+            a = self.task(action="library-add", ref="public:todo-daily")[3]["task"]
+            b = self.task(action="library-add", ref="public:todo-daily")[3]["task"]
+            c = self.task(action="library-remove", name="old-one")[3]["task"]
+            self.assertEqual(a["id"], b["id"])                       # the same change: one task
+            self.wait(a["id"], ("running",))
+            self.assertEqual(self.wait(c["id"], ("queued",))["state"], "queued")
+            gate.set()
+            self.assertEqual(self.wait(c["id"])["state"], "success")
         finally:
-            self.srv.write_lock.release()
-        self.assertEqual(self.post()[0], 200)
+            ui.durweg_json = old
+        self.assertEqual(calls, [["library", "add", "public:todo-daily"], ["library", "remove", "old-one"]])
+
+    def test_tasks_check_their_fields(self):
+        for body, msg in (({"action": "rm -rf"}, "unknown action"), ({"action": "library-add", "ref": "--dev"}, "may not start"),
+                          ({"action": "library-add", "ref": "x", "path": "/"}, "unknown field: path"),
+                          ({"action": "catalog-add", "id": "team", "url": "file:///etc"}, "https://"),
+                          ({"action": "library-remove"}, "must be text"),
+                          ({"action": "private-create", "would": "anything"}, "preview first")):
+            st, _, _, j = self.task(**body)
+            self.assertEqual(st, 400, body)
+            self.assertIn(msg, j["error"], body)
+
+    def test_private_catalog_needs_the_shown_preview(self):
+        seen = []
+
+        def fake(args, timeout=0):
+            seen.append(args)
+            if args[-1] == "--yes":
+                return {"schema": 1, "ok": True, "preview": False, "id": "private"}
+            return {"schema": 1, "ok": True, "preview": True, "account": "someone",
+                    "would": "create someone/durweg-workflows-private"}
+        old, ui.durweg_json = ui.durweg_json, fake
+        try:
+            tid = self.task(action="private-preview")[3]["task"]["id"]
+            self.wait(tid)
+            self.assertEqual(self.task(action="private-create", would="create other/thing")[0], 400)
+            tid = self.task(action="private-create", would="create someone/durweg-workflows-private")[3]["task"]["id"]
+            self.assertEqual(self.wait(tid)["state"], "success")
+            self.assertEqual(self.task(action="private-create", would="create someone/durweg-workflows-private")[0], 400)
+        finally:
+            ui.durweg_json = old
+        self.assertEqual(seen, [["catalog", "create-private"], ["catalog", "create-private", "--yes"]])
+
+    def test_task_states_and_restart(self):
+        self.assertEqual(ui.task_state({"ok": True}), "success")
+        self.assertEqual(ui.task_state({"ok": False, "timeout": True}), "timeout")
+        self.assertEqual(ui.task_state({"ok": False, "items": [{"status": "updated"}, {"status": "failed"}]}), "partial")
+        self.assertEqual(ui.task_state({"ok": False, "error": "x"}), "failed")
+        old, ui.durweg_json = ui.durweg_json, lambda a, timeout=0: {"ok": True, "durweg": {"restart_ui": True}, "items": []}
+        try:
+            self.wait(self.task(action="update")[3]["task"]["id"])
+        finally:
+            ui.durweg_json = old
+        self.assertTrue(self.req("GET", "/api/tasks", {"Host": f"127.0.0.1:{self.port}"})[3]["restart_ui"])
 
     def test_idle_stop(self):
         srv = ui.UIServer(idle=1)

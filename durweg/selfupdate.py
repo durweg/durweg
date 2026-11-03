@@ -14,6 +14,7 @@ Tests and release candidates:
 DURWEG_SOURCE / DURWEG_SHA256 pass through to the installer.
 """
 
+import json
 import os
 import re
 import subprocess
@@ -151,21 +152,44 @@ def launcher():
     return None
 
 
-def main_update():
+def main_update(as_json=False):
     status, detail = platform()
-    print(f"Durweg                  {status:9} {detail}")
-    sys.stdout.flush()
+    if not as_json:
+        print(f"Durweg                  {status:9} {detail}")
+        sys.stdout.flush()
+    from .util import coexist_lines, plugin_root
+    notes = coexist_lines() if plugin_root() is None else []   # the installer's copy: say so when a plugin copy is there too
     if status == "updated" and launcher():
         # the new version updates the library: its code, not this process's old one
-        cmd = [launcher(), "library", "update"]
+        cmd = [launcher(), "library", "update"] + (["--json"] if as_json else [])
         if current_platform() == "windows":
             cmd = ["cmd.exe", "/d", "/c", *cmd]
-        rc = subprocess.run(cmd, stdin=subprocess.DEVNULL).returncode
+        if as_json:
+            r = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding="utf-8",
+                               errors="replace")
+            try:
+                lib = json.loads(r.stdout)
+            except ValueError:
+                lib = {"ok": False, "error": f"the new durweg's library update gave no JSON (exit {r.returncode})",
+                       "items": [], "catalogs": [], "counts": {}}
+            rc = r.returncode
+        else:
+            rc = subprocess.run(cmd, stdin=subprocess.DEVNULL).returncode
     else:
-        from .cli import _update
-        rc = _update(None)
-    from .util import coexist_lines, plugin_root
-    if plugin_root() is None:              # the installer's copy: say so when a plugin copy is there too
-        for line in coexist_lines():
-            print(line)
+        from .cli import _update, update_data
+        if as_json:
+            lib = update_data(None)
+            lib["ok"] = not lib["counts"]["failed"]
+            rc = 0
+        else:
+            rc = _update(None)
+    if as_json:
+        from .cli import emit
+        emit({"ok": status != "failed" and bool(lib.get("ok", True)),
+              "durweg": {"status": status, "detail": detail, "restart_ui": status == "updated"},
+              "catalogs": lib.get("catalogs", []), "items": lib.get("items", []), "counts": lib.get("counts", {}),
+              "attention": lib.get("attention", []), "notes": notes + ([lib["error"]] if lib.get("error") else [])})
+        return 1 if status == "failed" else rc
+    for line in notes:
+        print(line)
     return 1 if status == "failed" else rc

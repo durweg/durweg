@@ -41,6 +41,28 @@ class Json(CatalogCase):
         self.assertEqual(it["installed_as"], "mini")
         self.assertIsInstance(it["platforms"], list)
 
+    def test_same_name_from_elsewhere_is_flagged(self):
+        own = self.tmp / "own-mini"
+        import shutil
+        shutil.copytree(self.repo, own)
+        self.wf("library", "add", str(own), "--name", "mini")
+        [it] = one_json(self.wf("library", "available", "--json"))["items"]
+        self.assertEqual((it["installed_as"], it["name_in_library"]), (None, True))
+
+    def test_remove_then_add_again(self):
+        self.wf("library", "add", "mini")
+        self.wf("library", "remove", "mini")
+        j = one_json(self.wf("library", "add", "public:mini", "--json"))       # the kept clone is used again
+        self.assertEqual(j["name"], "mini")
+        self.assertIn("kept from before", j["note"])
+        self.assertEqual(one_json(self.wf("library", "available", "--json"))["items"][0]["installed_as"], "mini")
+        self.wf("library", "remove", "mini")
+        folder = Path(os.environ["DURWEG_HOME"]) / "workflows" / "mini"
+        import shutil
+        shutil.rmtree(folder / ".git")                                         # not a clone any more
+        out = self.wf("library", "add", "mini", expect=1)
+        self.assertIn(f"durweg library add {folder}", out)
+
     def test_unreachable_catalog_is_a_note_not_a_failure(self):
         url = self.catalog("gone", {})
         self.wf("catalog", "add", "gone", url)
@@ -62,10 +84,41 @@ class Json(CatalogCase):
         self.assertIn("mine", urls)
 
     def test_errors_are_json_too(self):
-        out = self.wf("library", "add", "mini", "--json", expect=1)
-        self.assertEqual(one_json(out), {"schema": 1, "ok": False, "error": "--json is not available for library add yet"})
-        out = self.wf("catalog", "remove", "public", "--json", expect=1)
-        self.assertFalse(one_json(out)["ok"])
+        out = self.wf("library", "remove", "nothing-here", "--json", expect=1)
+        j = one_json(out)
+        self.assertEqual((j["schema"], j["ok"]), (1, False))
+        self.assertTrue(j["error"])
+        self.assertFalse(one_json(self.wf("catalog", "add", "x", "--json", expect=1))["ok"])
+
+    def test_changes(self):
+        j = one_json(self.wf("library", "add", "public:mini", "--json"))
+        self.assertEqual((j["ok"], j["name"]), (True, "mini"))
+        j = one_json(self.wf("library", "update", "--json"))
+        self.assertEqual([(it["name"], it["status"]) for it in j["items"]], [("mini", "unchanged")])
+        self.assertEqual(j["catalogs"][0]["id"], "public")
+        self.assertTrue(j["ok"])
+        j = one_json(self.wf("library", "remove", "mini", "--json"))
+        self.assertTrue(j["folder_kept"])
+        j = one_json(self.wf("catalog", "add", "team", self.catalog("team", {}), "--json"))
+        self.assertEqual((j["id"], j["note"]), ("team", None))
+        self.assertEqual(one_json(self.wf("catalog", "remove", "team", "--json"))["result"], "removed")
+        self.assertEqual(one_json(self.wf("catalog", "remove", "public", "--json"))["result"], "switched off")
+
+    def test_update_everything(self):
+        self.wf("library", "add", "mini")
+        j = one_json(self.wf("update", "--json"))
+        self.assertEqual(j["durweg"]["status"], "skipped")      # not installed by the installer here
+        self.assertFalse(j["durweg"]["restart_ui"])
+        self.assertEqual([(it["name"], it["status"]) for it in j["items"]], [("mini", "unchanged")])
+        self.assertTrue(j["ok"])
+
+    def test_update_reports_failures_as_not_ok(self):
+        self.wf("library", "add", "mini")
+        import shutil
+        shutil.rmtree(self.mini_url)                         # its remote is gone
+        j = one_json(self.wf("library", "update", "mini", "--json"))
+        self.assertEqual(j["items"][0]["status"], "failed")
+        self.assertFalse(j["ok"])
 
 
 @unittest.skipIf(os.name == "nt", "fake tools are shell scripts")

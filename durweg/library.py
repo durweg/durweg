@@ -127,7 +127,7 @@ def _add_git(url, name, catalog_id=None):
                       f"({entries()[name]['path']}); choose another with --name")
     dest = home() / "workflows" / name
     if dest.exists():
-        raise WfError(f"{dest} exists already")
+        return _readd(dest, url, name, catalog_id)
     dest.parent.mkdir(parents=True, exist_ok=True)
     stage = dest.parent / f".add-{name}-{uuid.uuid4().hex[:12]}"
     try:
@@ -158,6 +158,27 @@ def _add_git(url, name, catalog_id=None):
     finally:
         rmtree(stage)                             # only this call's own folder
     return name, dest, None
+
+
+def _readd(dest, url, name, catalog_id):
+    """dest exists but is not in the library (`library remove` keeps the folder). When it is a clone
+    of the same address, register it again as it is; otherwise say how to go on."""
+    from . import catalog, gitops
+    try:
+        origin = gitops.run(["remote", "get-url", "origin"], cwd=dest).strip() if (dest / ".git").exists() else ""
+    except gitops.GitFailed:
+        origin = ""
+    if not origin or not catalog.same_url(origin, url):
+        raise WfError(f"{dest} exists already (perhaps kept by an earlier `durweg library remove`). "
+                      f"To use that folder: durweg library add {dest} ; to install a fresh copy, move or "
+                      "delete the folder first")
+    workflow.load(dest)                               # validates workflow.json
+    branch, commit = gitops.head_state(dest)
+    entry = {"path": str(dest), "source": "git", "url": url, "added": now(), "branch": branch, "commit": commit}
+    if catalog_id:
+        entry["catalog"] = catalog_id
+    _register(name, entry)
+    return name, dest, "added the folder kept from before again; `durweg library update` brings it up to date"
 
 
 def _add_folder(target, name):

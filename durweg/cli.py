@@ -293,11 +293,6 @@ def emit(obj):
     return 0
 
 
-def _no_json_yet(a, what):
-    if getattr(a, "json", False):
-        raise WfError(f"--json is not available for {what} yet")
-
-
 def _library_list_json():
     from . import catalog
     items = []
@@ -330,7 +325,9 @@ def _available_json():
                 except WfError:
                     plats = None
             items.append({"ref": f"{cid}:{name}", "catalog": cid, "name": name, "title": e["title"],
-                          "summary": e["summary"], "installed_as": as_, "platforms": plats})
+                          "summary": e["summary"], "installed_as": as_, "platforms": plats,
+                          # the same name already in the library from elsewhere (own folder, other address)
+                          "name_in_library": name in lib and not as_})
     return emit({"catalogs_on": sorted(cats), "items": items, "notes": notes})
 
 
@@ -339,22 +336,25 @@ def cmd_library(a):
         return _library_list_json()
     if a.json and a.action == "available":
         return _available_json()
-    _no_json_yet(a, f"library {a.action}")
     if a.action in ("add", "remove") and not a.target:
         raise WfError(f"durweg library {a.action} needs a "
                       f"{'name, <catalog>:<name>, folder or git address' if a.action == 'add' else 'name'}")
     if a.action == "add":
         name, path, note = library.add(a.target, a.name)
+        if a.json:
+            return emit({"name": name, "path": str(path), "note": note})
         if note:
             print(f"note: {note}", file=sys.stderr)
         print(f"added {name}: {path}\nrun it with: durweg start {name} <name-of-this-run>")
     elif a.action == "remove":
         path = library.remove(a.target)
+        if a.json:
+            return emit({"name": a.target, "folder_kept": str(path)})
         print(f"removed {a.target} from the library (the folder {path} is kept)")
     elif a.action == "available":
         return _available()
     elif a.action == "update":
-        return _update([a.target] if a.target else None, quiet=a.quiet)
+        return _update([a.target] if a.target else None, quiet=a.quiet, as_json=a.json)
     else:
         items = library.entries()
         if not items:
@@ -401,43 +401,55 @@ def _normal_skip(detail):
     return detail.startswith("your own folder") or detail == library.PLUGIN_NOTE
 
 
-def _update(names, quiet=False):
-    """Plan v1.1 C5: the catalogs, then every workflow Durweg cloned; one line each, then a sum.
-    Exit 0 even when some were skipped or failed: those are reported, the rest is done.
-    quiet (the installers): only what changed or needs attention."""
+def update_data(names):
+    """Plan v1.1 C5: the catalogs, then every workflow Durweg cloned (or only `names`).
+    {"catalogs": [{id, state, reason, had}], "items": [{name, status, detail}], "counts": {...}}."""
     from . import catalog
-    counts = {}
+    cats = []
     if not names:
         for cid, entry in sorted(catalog.enabled().items()):
             had = (catalog.cache_dir(cid) / "catalog.json").is_file()
             reason = catalog.refresh(cid, entry["url"])
-            if reason and had:
-                print(f"catalog {cid}: not refreshed ({reason}); the last copy is kept")
-            elif reason and not quiet:      # never used yet: the installers need not say so (V11-C-010)
-                print(f"catalog {cid}: not downloaded yet ({reason})")
-            elif not reason and not quiet:
-                print(f"catalog {cid}: refreshed")
-    rows = library.update(names)
+            cats.append({"id": cid, "state": "refreshed" if not reason else "kept" if had else "missing",
+                         "reason": reason, "had": had})
+    items = [{"name": n, "status": s, "detail": d} for n, s, d in library.update(names)]
+    counts = {k: sum(1 for it in items if it["status"] == k) for k in ("updated", "unchanged", "skipped", "failed")}
+    return {"catalogs": cats, "items": items, "counts": counts,
+            "attention": [it["name"] for it in items
+                          if it["status"] == "failed" or (it["status"] == "skipped" and not _normal_skip(it["detail"]))]}
+
+
+def _update(names, quiet=False, as_json=False):
+    """Print update_data. Exit 0 even when some were skipped or failed: those are reported, the rest
+    is done (--json: ok is false when any failed). quiet (the installers): only what changed or needs attention."""
+    d = update_data(names)
+    if as_json:
+        return emit(dict(d, ok=not d["counts"]["failed"]))
+    for c in d["catalogs"]:
+        if c["state"] == "kept":
+            print(f"catalog {c['id']}: not refreshed ({c['reason']}); the last copy is kept")
+        elif c["state"] == "missing" and not quiet:      # never used yet: the installers need not say so (V11-C-010)
+            print(f"catalog {c['id']}: not downloaded yet ({c['reason']})")
+        elif c["state"] == "refreshed" and not quiet:
+            print(f"catalog {c['id']}: refreshed")
     shown = 0
-    for name, status, detail in rows:
-        counts[status] = counts.get(status, 0) + 1
-        if quiet and (status == "unchanged" or (status == "skipped" and _normal_skip(detail))):
+    for it in d["items"]:
+        if quiet and (it["status"] == "unchanged" or (it["status"] == "skipped" and _normal_skip(it["detail"]))):
             continue
-        print(f"{name:23} {status:9} {detail}")
+        print(f"{it['name']:23} {it['status']:9} {it['detail']}")
         shown += 1
-    if not rows and not names and not quiet:
+    if not d["items"] and not names and not quiet:
         print("the library is empty")
     if shown or not quiet:
-        print("summary: " + ", ".join(f"{counts.get(k, 0)} {k}" for k in ("updated", "unchanged", "skipped", "failed")))
-    attention = sum(1 for _, st, d in rows if st == "failed" or (st == "skipped" and not _normal_skip(d)))
-    if attention:
+        print("summary: " + ", ".join(f"{d['counts'][k]} {k}" for k in ("updated", "unchanged", "skipped", "failed")))
+    if d["attention"]:
         print("warning: some were not updated; the reasons are on their lines", file=sys.stderr)
     return 0
 
 
 def cmd_update(a):
     from . import selfupdate
-    return selfupdate.main_update()
+    return selfupdate.main_update(as_json=a.json)
 
 
 def cmd_publish(a):
@@ -463,16 +475,19 @@ def cmd_catalog(a):
         if why_not:
             raise WfError(why_not)
         if not a.yes:
+            if a.json:
+                return emit({"preview": True, "account": owner, "would": what})
             print(f"would {what}\nnothing was done yet; with the user's yes, run it again with --yes")
             return 0
         cid = publish.create_private(owner, adopt=what.startswith("use "))
+        if a.json:
+            return emit({"preview": False, "id": cid, "url": catalog.gitops.redact(catalog.configured()[cid]["url"])})
         print(f"your private catalog is {cid}: {catalog.gitops.redact(catalog.configured()[cid]['url'])}\n"
               f"on another computer: durweg catalog add {cid} <this address>")
         return 0
     if a.action == "list" and a.json:
         return emit({"items": [{"id": cid, "on": not e.get("disabled"), "url": catalog.gitops.redact(e["url"]),
                                 "fetched": e.get("fetched")} for cid, e in sorted(catalog.configured().items())]})
-    _no_json_yet(a, f"catalog {a.action}")
     if a.action == "list":
         for cid, e in sorted(catalog.configured().items()):
             state = "off" if e.get("disabled") else "on"
@@ -483,12 +498,17 @@ def cmd_catalog(a):
         raise WfError(f"durweg catalog {a.action} needs a name")
     if a.action == "add":
         url, reason = catalog.add(a.id, a.url)
+        if a.json:
+            return emit({"id": a.id, "url": catalog.gitops.redact(url), "note": reason})
         print(f"catalog {a.id} is on: {catalog.gitops.redact(url)}")
         if reason:
             print(f"note: it could not be downloaded now ({reason}); `durweg library available` tries again",
                   file=sys.stderr)
     else:
-        if catalog.remove(a.id):
+        public_off = catalog.remove(a.id)
+        if a.json:
+            return emit({"id": a.id, "result": "switched off" if public_off else "removed"})
+        if public_off:
             print("the public catalog is switched off; `durweg catalog add public` switches it on again")
         else:
             print(f"removed catalog {a.id} (workflows installed from it stay in the library)")
@@ -630,8 +650,9 @@ def main(argv=None):
                         "update: a name (all when left out)")
     p.add_argument("--name")
     p.add_argument("--quiet", action="store_true", help="update: show only what changed or needs attention")
-    p.add_argument("--json", action="store_true", help="list, available: print one JSON object (for programs)")
+    p.add_argument("--json", action="store_true", help="print one JSON object (for programs)")
     p = sub.add_parser("update", help="update Durweg itself to the newest release, then the catalogs and workflows")
+    p.add_argument("--json", action="store_true", help="print one JSON object (for programs)")
     p = sub.add_parser("publish", help="put one of your workflows on GitHub (shows first; --yes does it)")
     p.add_argument("name", help="a workflow in your library, from your own folder")
     g = p.add_mutually_exclusive_group()
@@ -652,7 +673,7 @@ def main(argv=None):
     p.add_argument("id", nargs="?", help="the catalog's name (public is the public catalog)")
     p.add_argument("url", nargs="?", help="add: the catalog's git address")
     p.add_argument("--yes", action="store_true", help="create-private: the user said yes to what was shown")
-    p.add_argument("--json", action="store_true", help="list: print one JSON object (for programs)")
+    p.add_argument("--json", action="store_true", help="print one JSON object (for programs)")
     p = sub.add_parser("runs", help="list the runs started on this computer")
     p.add_argument("--rebuild", metavar="FOLDER", help="scan FOLDER for runs and add them to the index")
     p = sub.add_parser("config", help="show or change your settings: durweg config language en|zh, "
