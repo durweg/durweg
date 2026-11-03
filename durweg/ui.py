@@ -1,10 +1,10 @@
 """durweg ui: a management page on this computer (plan durweg-dev plans/20261103_durweg-ui.md).
 
-Steps 2 and 3 of the plan: the security skeleton and the read-only pages. The server binds 127.0.0.1 on a port the system picks,
-serves a fixed set of built-in files, and accepts a write only as a POST that carries the start
+Steps 2-4 of the plan: the security skeleton, the read-only pages and the changes. The server
+binds 127.0.0.1 on a port the system picks, serves a fixed set of built-in files, and accepts a write only as a POST that carries the start
 token in the X-Durweg-Token header, the exact Host and a same-origin Origin (section 5). Reads are
-GETs and never write. The changes (add, remove, update, catalogs) come in step 4; until then the
-only write is "noop".
+GETs and never write. Changes (step 4) are POST /api/task: one task at a time, each a fixed
+`durweg … --json` command built from checked fields.
 
 Standard library only; Python 3.9+.
 """
@@ -165,20 +165,139 @@ def _version_and_language():
     return {"version": __version__, "language": lang if lang in ("en", "zh") else "en"}
 
 
-# ---------------------------------------------------------------- actions
-def action_noop(body):
-    check_fields(body, ())
-    return {"done": "nothing"}
+# ---------------------------------------------------------------- changes: one task at a time (section 5a)
+TASK_TIMEOUT = 10 * 60
+UPDATE_TIMEOUT = 30 * 60          # the installer alone may take 15 minutes
+PREVIEW_VALID = 10 * 60
+KEEP_TASKS = 20
 
 
-READS = {   # path -> function returning the JSON object to send (it carries its own "ok")
-    "/api/ping": lambda: dict({"schema": SCHEMA, "ok": True}, **_version_and_language()),
-    "/api/available": lambda: durweg_json(["library", "available"]),
-    "/api/installed": lambda: durweg_json(["library", "list"]),
-    "/api/catalogs": lambda: durweg_json(["catalog", "list"]),
-    "/api/doctor": lambda: durweg_json(["doctor"]),
+def _ref(body):
+    cat, name = split_ref(body.get("ref"))
+    return f"{cat}:{name}" if cat else name
+
+
+def _opt_name(body):
+    return [check_name(body["name"])] if body.get("name") is not None else []
+
+
+# action -> (fields, argv builder, timeout, label). Every argv is a list; the page never names a command.
+ACTIONS = {
+    "library-add": (("ref",), lambda b: ["library", "add", _ref(b)], TASK_TIMEOUT, "add {ref}"),
+    "library-remove": (("name",), lambda b: ["library", "remove", check_name(b.get("name"))], TASK_TIMEOUT, "remove {name}"),
+    "library-update": (("name",), lambda b: ["library", "update", *_opt_name(b)], TASK_TIMEOUT, "update {name}"),
+    "update": ((), lambda b: ["update"], UPDATE_TIMEOUT, "update Durweg and everything"),
+    "catalog-add": (("id", "url"), lambda b: ["catalog", "add", check_catalog(b.get("id")),
+                                              *([check_url(b["url"])] if b.get("url") is not None else [])],
+                    TASK_TIMEOUT, "add catalog {id}"),
+    "catalog-remove": (("id",), lambda b: ["catalog", "remove", check_catalog(b.get("id"))], TASK_TIMEOUT,
+                       "remove catalog {id}"),
+    "private-preview": ((), lambda b: ["catalog", "create-private"], TASK_TIMEOUT, "private catalog: preview"),
+    "private-create": (("would",), lambda b: ["catalog", "create-private", "--yes"], TASK_TIMEOUT,
+                       "private catalog: create"),
 }
-WRITES = {"/api/noop": action_noop}   # step 4 adds the changes
+
+
+def task_state(result):
+    if result.get("timeout"):
+        return "timeout"
+    if result.get("ok"):
+        return "success"
+    items = result.get("items") or []
+    if any(it.get("status") in ("updated", "unchanged") for it in items if isinstance(it, dict)):
+        return "partial"
+    return "failed"
+
+
+class Tasks:
+    """Changes run one after another in one worker thread; the same change asked twice while it is
+    still waiting or running is one task (a double click does nothing twice)."""
+
+    def __init__(self, server):
+        self.server = server
+        self.lock = threading.Lock()
+        self.items = []                 # newest last
+        self.wake = threading.Condition(self.lock)
+        self.seq = 0
+        self.preview = None             # (would, account, time) of the last private-catalog preview
+        self.restart = False            # Durweg itself was updated: the page asks to restart durweg ui
+        threading.Thread(target=self._work, daemon=True).start()
+
+    def submit(self, body):
+        if not isinstance(body, dict) or not isinstance(body.get("action"), str) or body["action"] not in ACTIONS:
+            raise BadRequest("unknown action")
+        action = body["action"]
+        fields, build, timeout, label = ACTIONS[action]
+        args = check_fields({k: v for k, v in body.items() if k != "action"}, fields)
+        argv = build(args)                                       # checks the fields (BadRequest)
+        if action == "private-create":
+            p = self.preview
+            if not p or args.get("would") != p[0] or time.monotonic() - p[2] > PREVIEW_VALID:
+                raise BadRequest("show the preview first and confirm what it says (it is valid for 10 minutes)")
+        with self.lock:
+            for tk in self.items:
+                if tk["argv"] == argv and tk["state"] in ("queued", "running"):
+                    return self.public(tk)
+            self.seq += 1
+            tk = {"id": self.seq, "action": action, "argv": argv, "timeout": timeout, "state": "queued",
+                  "label": label.format(**{k: (args.get(k) or "all") for k in ("ref", "name", "id")}),
+                  "result": None, "queued_at": time.time(), "ended_at": None}
+            self.items.append(tk)
+            del self.items[:-KEEP_TASKS]
+            self.wake.notify()
+            return self.public(tk)
+
+    @staticmethod
+    def public(tk):
+        return {k: tk[k] for k in ("id", "action", "label", "state", "result", "queued_at", "ended_at")}
+
+    def busy(self):
+        with self.lock:
+            return any(tk["state"] in ("queued", "running") for tk in self.items)
+
+    def listing(self):
+        with self.lock:
+            return {"schema": SCHEMA, "ok": True, "restart_ui": self.restart,
+                    "tasks": [self.public(tk) for tk in reversed(self.items)]}
+
+    def _work(self):
+        while True:
+            with self.lock:
+                tk = next((t for t in self.items if t["state"] == "queued"), None)
+                while tk is None:
+                    self.wake.wait()
+                    tk = next((t for t in self.items if t["state"] == "queued"), None)
+                tk["state"] = "running"
+            result = durweg_json(tk["argv"], timeout=tk["timeout"])
+            with self.lock:
+                tk["result"], tk["state"], tk["ended_at"] = result, task_state(result), time.time()
+                if tk["action"] == "private-preview" and result.get("ok") and result.get("would"):
+                    self.preview = (result["would"], result.get("account"), time.monotonic())
+                if tk["action"] == "private-create":
+                    self.preview = None
+                if tk["action"] == "update" and (result.get("durweg") or {}).get("restart_ui"):
+                    self.restart = True
+            self.server.touch()
+
+
+def action_noop(server, body):
+    check_fields(body, ())
+    return {"schema": SCHEMA, "ok": True, "done": "nothing"}
+
+
+def action_task(server, body):
+    return dict({"schema": SCHEMA, "ok": True}, task=server.tasks.submit(body))
+
+
+READS = {   # path -> function(server) returning the JSON object to send (it carries its own "ok")
+    "/api/ping": lambda s: dict({"schema": SCHEMA, "ok": True}, **_version_and_language()),
+    "/api/available": lambda s: durweg_json(["library", "available"]),
+    "/api/installed": lambda s: durweg_json(["library", "list"]),
+    "/api/catalogs": lambda s: durweg_json(["catalog", "list"]),
+    "/api/doctor": lambda s: durweg_json(["doctor"]),
+    "/api/tasks": lambda s: s.tasks.listing(),
+}
+WRITES = {"/api/noop": action_noop, "/api/task": action_task}
 
 
 # ---------------------------------------------------------------- built-in files
@@ -233,7 +352,7 @@ class Handler(BaseHTTPRequestHandler):
             body, ctype = _static(path)
             return self._send(200, body, ctype)
         if path in READS:
-            return self._send(200, READS[path]())
+            return self._send(200, READS[path](self.server))
         if path in WRITES:
             return self._error(405, "writes are POST only")
         return self._error(404, "not found")
@@ -258,14 +377,10 @@ class Handler(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(n) or b"{}")
         except ValueError:
             return self._error(400, "the request body is not JSON")
-        if not self.server.write_lock.acquire(blocking=False):
-            return self._error(409, "another change is running; wait until it ends")
         try:
-            return self._send(200, dict({"schema": SCHEMA, "ok": True}, **WRITES[path](body)))
+            return self._send(200, WRITES[path](self.server, body))
         except BadRequest as e:
             return self._error(e.status, str(e))
-        finally:
-            self.server.write_lock.release()
 
     def _refuse_method(self):
         self._error(405, "method not allowed")
@@ -279,7 +394,7 @@ class UIServer(ThreadingHTTPServer):
     def __init__(self, idle=IDLE_SECONDS):
         super().__init__(("127.0.0.1", 0), Handler)      # bind 0: the system picks a free port
         self.token = secrets.token_urlsafe(32)
-        self.write_lock = threading.Lock()
+        self.tasks = Tasks(self)
         self.idle = idle
         self.last = time.monotonic()
 
@@ -297,7 +412,7 @@ class UIServer(ThreadingHTTPServer):
         def watch():
             while True:
                 time.sleep(min(30, max(1, self.idle / 4)))
-                if time.monotonic() - self.last > self.idle:
+                if time.monotonic() - self.last > self.idle and not self.tasks.busy():
                     self.shutdown()
                     return
         threading.Thread(target=watch, daemon=True).start()

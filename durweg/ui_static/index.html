@@ -9,7 +9,8 @@
 <script src="/app.js" defer></script>
 </head>
 <body>
-<header><h1>Durweg</h1><span id="version"></span></header>
+<header><h1>Durweg</h1><span id="version"></span><button type="button" id="update_all" class="write" data-t="update_all"></button></header>
+<p id="restart" class="warn" hidden data-t="restart"></p>
 <p id="notoken" class="warn" hidden data-t="notoken"></p>
 <nav>
   <button type="button" class="tab" data-tab="browse" data-t="tab_browse"></button>
@@ -30,8 +31,22 @@
     <div id="env_list" class="list"></div>
     <h2 data-t="catalogs"></h2>
     <div id="catalog_list" class="list"></div>
+    <form id="catalog_form" class="row">
+      <input id="catalog_id" type="text" maxlength="32" autocomplete="off" data-ph="catalog_id">
+      <input id="catalog_url" type="text" maxlength="300" autocomplete="off" data-ph="catalog_url">
+      <button type="submit" class="write" data-t="catalog_add"></button>
+    </form>
+    <p><button type="button" id="private_preview" class="write" data-t="private_preview"></button></p>
+    <div id="private_box" class="card" hidden>
+      <p id="private_would"></p>
+      <button type="button" id="private_create" class="write" data-t="private_create"></button>
+    </div>
     <button type="button" id="recheck" data-t="recheck"></button>
   </section>
+  <div id="tasks_box" hidden>
+    <h2 data-t="tasks"></h2>
+    <div id="tasks_list" class="list"></div>
+  </div>
   <div id="copybox" class="copy" hidden>
     <p id="copy_where"></p>
     <input id="copy_text" type="text" readonly>
