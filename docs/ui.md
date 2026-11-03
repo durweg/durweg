@@ -15,7 +15,7 @@ you the sentence to say.
 | Tab | What you do there |
 | :--- | :--- |
 | Browse | • the workflows in the catalogs that are switched on<br>• **Add** installs one; a workflow with the same name already in your library is marked instead |
-| Installed | • your library<br>• **Run** shows the sentence for your agent; **Update**; **Remove** (the folder stays on this computer) |
+| Installed | • your library<br>• **Run** shows the sentence for your agent; **Update**; **Remove** (the folder stays on this computer; write-your-method comes with Durweg and cannot be removed) |
 | This computer | • Claude Code, Codex, Antigravity: installed, and whether they have Durweg<br>• GitHub sign-in (to sign in: `gh auth login --web` in a terminal)<br>• catalogs: add, remove, switch the public one off and on, make your private catalog (you see what would happen first) |
 
 **Update everything** (top right) does the same as `durweg update`. Changes run one at a time and
