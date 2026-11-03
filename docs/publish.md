@@ -27,6 +27,24 @@ GitHub, and `durweg library list` still shows it in your own folder.
 Durweg copies these into `~/Durweg/publish/<name>/` and pushes from there; your folder is not
 changed and stays where you edit the workflow.
 
+## Before a public publish: English for what people type
+
+A public workflow is read by people who may not read Chinese. Before publishing it publicly, Durweg
+looks at the English pages (every `.md` except `*_cn.md` / `*_zh.md`) and stops when what a reader
+types or copies is not in English: inline code, code blocks and quoted lines (such as "tell your
+agent: ..."). With `--catalog yes` it also checks the title and summary that go into the public
+catalog. Fix them and run publish again; if some are meant that way (an example of Chinese input),
+pass `--language-ok`. When the README itself is not in English, Durweg asks first:
+`--english-readme add` stops so you can write one (keep the other language as `README_cn.md`),
+`--english-readme skip` publishes as it is. Private publishing is not checked.
+
+## Where it goes: your account or an organization
+
+New repositories go to `<your GitHub account>/durweg-<name>`. To publish to an organization by
+default, run `durweg config publish-owner <organization>` (`durweg config publish-owner none` goes
+back); `--repo owner/name` still chooses one repository. What `durweg publish` shows names the owner
+and where it came from. A workflow published before keeps going to its first repository.
+
 ## Later
 
 - **A new version:** edit the workflow in your folder, then "Publish <name> with durweg" again. It
