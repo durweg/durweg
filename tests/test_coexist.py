@@ -40,7 +40,7 @@ class Coexist(unittest.TestCase):
 
     def test_claude_and_codex_plugins(self):
         self.installed(["durweg@durweg", "ai-queue@ai-queue"])
-        b = self.codex / "plugins/cache/durweg/durweg/1.7.0/bin"
+        b = self.codex / "plugins/cache/durweg/durweg/1.8.0/bin"
         b.mkdir(parents=True)
         (b / "durweg").write_text("#!/bin/sh\n")
         lines = coexist_lines()
