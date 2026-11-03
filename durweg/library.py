@@ -209,11 +209,26 @@ def _check_name(name):
         raise WfError(f"library names use lower-case letters, digits and -: {name!r}; choose one with --name")
 
 
+def is_builtin(name, entry):
+    """The example that comes with Durweg (write-your-method from Durweg's own examples folder, from the
+    installer or a plugin). It stays in the library: the user decided it cannot be removed (2026-11-03).
+    A workflow of the user's own that is also called write-your-method is not built in."""
+    if name != PLUGIN_EXAMPLE:
+        return False
+    if entry.get("source") == "plugin-example":
+        return True
+    path = Path(entry.get("path", ""))
+    return path.parts[-2:] == ("examples", PLUGIN_EXAMPLE) and (path.parent.parent / "durweg" / "__init__.py").is_file()
+
+
 def remove(name):
     with _IndexLock("library"):
         data = _load("library.json", "workflows")
         if name not in data["workflows"]:
             raise WfError(f"no workflow named {name} in the library")
+        if is_builtin(name, data["workflows"][name]):
+            raise WfError(f"{name} comes with Durweg and stays in the library; "
+                          "it is only run when you ask for it")
         entry = data["workflows"].pop(name)
         write_json(home() / "library.json", data)
     return entry["path"]

@@ -303,7 +303,8 @@ def _library_list_json():
         except WfError:
             plats, valid = None, False
         items.append({"name": name, "path": str(p), "platforms": plats, "valid": valid,
-                      "url": catalog.gitops.redact(e["url"]) if e.get("url") else None})
+                      "url": catalog.gitops.redact(e["url"]) if e.get("url") else None,
+                      "builtin": library.is_builtin(name, e)})
     return emit({"items": items})
 
 

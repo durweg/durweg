@@ -87,9 +87,18 @@ class PluginCopy(unittest.TestCase):
         self.assertEqual(e["source"], "plugin-example")
         self.assertEqual(os.path.normpath(e["path"]), os.path.normpath(self.example_path()))
 
-    def test_a_removed_example_is_not_put_back(self):
+    def test_the_example_cannot_be_removed(self):            # user 2026-11-03: it comes with Durweg
         self.run_durweg("library", "list")
-        self.run_durweg("library", "remove", EXAMPLE)
+        r = self.run_durweg("library", "remove", EXAMPLE, expect=1)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("comes with Durweg", r.stderr)
+        self.assertIn(EXAMPLE, self.library())
+
+    def test_an_example_removed_by_an_older_durweg_is_not_put_back(self):
+        self.run_durweg("library", "list")
+        data = json.loads((self.home / "library.json").read_text())
+        del data["workflows"][EXAMPLE]
+        (self.home / "library.json").write_text(json.dumps(data))
         self.run_durweg("library", "list")
         self.assertNotIn(EXAMPLE, self.library())
 

@@ -29,7 +29,7 @@ const TEXT = {
     catalog_id: "catalog name, e.g. team", catalog_url: "https://… or git@host:path (empty for public)", catalog_add: "Add catalog",
     private_preview: "Make my private catalog…", private_create: "Yes, do it", tasks: "Changes",
     name_taken: (n) => `Your library already has a workflow named ${n} (from your own folder or another address).`,
-    add: "Add", remove: "Remove", update: "Update", switch_off: "Switch off",
+    builtin: "comes with Durweg", add: "Add", remove: "Remove", update: "Update", switch_off: "Switch off",
     confirm_remove: (n) => `Remove ${n} from your library? Its folder stays on this computer.`,
     confirm_catalog_remove: (id) => id === "public" ? "Switch the public catalog off? You can switch it on again." : `Remove catalog ${id}? Workflows installed from it stay.`,
     confirm_update_all: "Update Durweg itself, the catalogs and all workflows? This can take some minutes.",
@@ -57,7 +57,7 @@ const TEXT = {
     catalog_id: "目录名，例如 team", catalog_url: "https://… 或 git@主机:路径（公开目录留空）", catalog_add: "加入目录",
     private_preview: "建我的私人目录…", private_create: "确认，照做", tasks: "改动",
     name_taken: (n) => `你的方法库里已经有一个叫 ${n} 的工作流（来自你自己的文件夹或别的地址）。`,
-    add: "加入", remove: "移除", update: "更新", switch_off: "关掉",
+    builtin: "Durweg 自带", add: "加入", remove: "移除", update: "更新", switch_off: "关掉",
     confirm_remove: (n) => `从方法库移除 ${n}？它的文件夹会留在这台电脑上。`,
     confirm_catalog_remove: (id) => id === "public" ? "关掉公开目录？以后可以再打开。" : `移除目录 ${id}？从它装的工作流会留着。`,
     confirm_update_all: "更新 Durweg 本身、所有目录和所有工作流？可能要几分钟。",
@@ -227,8 +227,9 @@ async function loadInstalled() {
     const b = el("button", null, T.run); b.type = "button";
     b.addEventListener("click", () => showCopy(it.name));
     const row = el("div", "row");
-    row.append(b, button(T.update, () => change({ action: "library-update", name: it.name })),
-      button(T.remove, () => { if (confirm(T.confirm_remove(it.name))) change({ action: "library-remove", name: it.name }); }));
+    row.append(b, button(T.update, () => change({ action: "library-update", name: it.name })));
+    if (it.builtin) row.append(el("span", "muted", T.builtin));
+    else row.append(button(T.remove, () => { if (confirm(T.confirm_remove(it.name))) change({ action: "library-remove", name: it.name }); }));
     card.append(row);
     box.append(card);
   }

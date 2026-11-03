@@ -49,6 +49,25 @@ class Json(CatalogCase):
         [it] = one_json(self.wf("library", "available", "--json"))["items"]
         self.assertEqual((it["installed_as"], it["name_in_library"]), (None, True))
 
+    def test_the_built_in_example_cannot_be_removed(self):
+        home = Path(os.environ["DURWEG_HOME"])
+        copy = self.tmp / "share" / "current"                       # like the installer's copy
+        (copy / "durweg").mkdir(parents=True)
+        (copy / "durweg" / "__init__.py").write_text("")
+        import shutil
+        shutil.copytree(Path(__file__).resolve().parent.parent / "examples" / "write-your-method",
+                        copy / "examples" / "write-your-method")
+        self.wf("library", "add", str(copy / "examples" / "write-your-method"), "--name", "write-your-method")
+        [it] = [i for i in one_json(self.wf("library", "list", "--json"))["items"] if i["name"] == "write-your-method"]
+        self.assertTrue(it["builtin"])
+        self.assertIn("comes with Durweg", self.wf("library", "remove", "write-your-method", expect=1))
+        self.assertIn("write-your-method", self.lib())
+        # a workflow of the user's own with that name is not built in
+        data = json.loads((home / "library.json").read_text())
+        data["workflows"]["write-your-method"]["path"] = str(self.repo)
+        (home / "library.json").write_text(json.dumps(data))
+        self.wf("library", "remove", "write-your-method")
+
     def test_remove_then_add_again(self):
         self.wf("library", "add", "mini")
         self.wf("library", "remove", "mini")
