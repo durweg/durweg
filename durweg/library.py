@@ -287,7 +287,8 @@ def remove(name):
         if is_builtin(name, data["workflows"][name]):
             raise WfError(f"{name} comes with Durweg and stays in the library; "
                           "it is only run when you ask for it")
-        if data["workflows"][name].get("source") == "plugin":           # its plugin's hook would add it again
+        e = data["workflows"][name]
+        if e.get("source") == "plugin" and Path(e.get("path", "")).exists():   # its plugin's hook would add it again
             raise WfError(f"{name} comes with the plugin {data['workflows'][name].get('plugin', '?')}; "
                           "to remove it, uninstall that plugin")
         entry = data["workflows"].pop(name)

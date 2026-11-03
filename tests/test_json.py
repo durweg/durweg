@@ -108,12 +108,12 @@ class Json(CatalogCase):
         self.assertIn("uninstall that plugin", self.wf("library", "remove", "todo-daily", expect=1))
         [it] = [i for i in one_json(self.wf("library", "list", "--json"))["items"] if i["name"] == "todo-daily"]
         self.assertTrue(it["builtin"])                                    # the page shows no Remove button
-        data = json.loads((Path(os.environ["DURWEG_HOME"]) / "library.json").read_text())
-        del data["workflows"]["todo-daily"]                               # as if the plugin was uninstalled
-        (Path(os.environ["DURWEG_HOME"]) / "library.json").write_text(json.dumps(data))
+        shutil.rmtree(v2.parent.parent)                                   # the plugin was uninstalled
+        self.assertIn("removed todo-daily", self.wf("library", "remove", "todo-daily"))   # now it can go
         # the user's own todo-daily is left alone; a broken folder is reported, the rest goes on
         self.wf("library", "add", str(self.repo), "--name", "todo-daily")
-        bad = self.tmp / "plugins" / "durweg-todo" / "0.3.1" / "workflows" / "todo-weekly"
+        v2 = plugin_copy("0.3.2")
+        bad = v2.parent / "todo-weekly"
         bad.mkdir()
         out = self.wf("_plugin_workflows", "durweg-todo", v2, bad)
         self.assertIn("kept yours", out)
