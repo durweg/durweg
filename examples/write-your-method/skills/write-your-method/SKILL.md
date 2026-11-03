@@ -13,6 +13,15 @@ write a first version yourself, write it and let the user correct it.
 
 `RUN` below is this run's folder.
 
+**Before anything else, say what this is** (in the user's language, three short lines, then go on):
+what it does ("I will help you turn one kind of work you do often, with many or tedious steps, into a
+workflow, so that from then on an AI does it by those steps"); the six steps, one line each
+(describe, check whether something already does it, design, build, try once, name); and that
+everything is recorded in RUN, with a table of the files after every step.
+
+**After every `durweg done`**, run `python3 RUN/.wf/workflow/tools/overview.py RUN` and show the
+user its table as it is: each file of the run so far, what it is and where it is.
+
 ## 1. Describe
 Ask one question: **"When this workflow is done, what do you want to have?"** From the answer
 write one sentence, the core: "It solves ___; when it is done you have ___." Show it; the user
@@ -34,8 +43,10 @@ the user's language):
 ## 2. Check
 Before building anything, look for something that already does what the core says: agent plugins
 and skills (Claude Code, Codex), workflows in the Durweg public catalog (`durweg library available`),
-and existing software or libraries. At most 5 searches; show at most 3 results, one line each: what
-it is, whether it does the core, what it lacks.
+and existing software or libraries. At most 5 searches; show at most 3 results **as a table** (name
+and link, what it does in a few words, whether it does the core, what it lacks), and say that they
+are recorded in `steps/2-check.md`. Then **stop and ask the user to choose**; do not start step 3
+before they have chosen.
 
 **File:** `steps/2-check.md`:
 
@@ -81,7 +92,10 @@ Show the user the steps as a numbered list (title, what it delivers, whether the
    `durweg library add "<that folder>" --name <name>`. If the name is taken, choose another
    (`durweg reopen RUN design`).
 
-Tell the user it is built and in their library (step number, id, title, whether they decide there).
+Tell the user it is built and in their library (step number, id, title, whether they decide there),
+and say plainly where it is: **on this computer only** (`~/Durweg/workflows/<name>/`), **private**,
+nothing was uploaded. It goes online only if they choose to publish it at the end (step 6 asks once),
+and then they choose public or private.
 
 ## 5. Try
 Ask the user whether to run their new workflow once now. When they agree:

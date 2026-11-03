@@ -40,7 +40,9 @@ def main(argv):
         shutil.copytree(src, dest)
     rec = {"name": name, "library_path": str(dest), "digest": digest}
     (run / "steps/4-register.json").write_text(json.dumps(rec, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"copied to {dest}\nnow run: durweg library add \"{dest}\" --name {name}")
+    print(f"copied to {dest}\nnow run: durweg library add \"{dest}\" --name {name}\n"
+          "it is on this computer only and private: nothing was uploaded. It goes online only if the user "
+          "chooses to publish it at the end (step 6 asks once), and then they choose public or private.")
     return 0
 
 
