@@ -22,6 +22,14 @@
 
 Durweg 把这些复制到 `~/Durweg/publish/<名字>/`，从那里推送；你的文件夹不变，你照常在那里改工作流。
 
+## 公开发布之前：别人要输入的内容用英文
+
+公开的工作流会被不读中文的人看到。公开发布前，Durweg 会看英文页面（除 `*_cn.md`、`*_zh.md` 以外的 `.md`），读者要输入或照抄的地方（行内代码、代码块、引用行，比如“对 agent 说：……”）不是英文就停下。加了 `--catalog yes` 时，还会查进公开目录的标题和简介。改好再发布；确实要保留的（比如演示中文输入的例子）加 `--language-ok`。README 本身不是英文时先问你：`--english-readme add` 停下让你写英文版（中文版留作 `README_cn.md`），`--english-readme skip` 照原样发布。私有发布不查。
+
+## 发到哪里：你的账号还是组织
+
+新仓库默认建在 `<你的 GitHub 账号>/durweg-<名字>`。想默认发到某个组织：`durweg config publish-owner <组织名>`（`durweg config publish-owner none` 改回）；`--repo owner/name` 仍可单独指定。`durweg publish` 显示的清单会写明建在哪、这个 owner 从哪来。以前发布过的工作流照旧只推到它第一次发布的仓库。
+
 ## 以后
 
 - **新版本：** 在你的文件夹里改好工作流，再说一次“用 durweg 发布 <名字>”。它推到同一个仓库；别的电脑用 `durweg update` 拿到。
