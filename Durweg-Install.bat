@@ -311,10 +311,11 @@ $ex = if ($lib -and $lib.workflows) { $lib.workflows.'write-your-method' } else 
 # the example comes with Durweg and cannot be removed: point its entry at this version's copy
 if (-not $ex -or $ex.path -like "$Local*") {
     $exNew = Join-Path $New 'examples\write-your-method'
-    & $Launcher _example $exNew 2>$null | Out-Null
-    if ($LASTEXITCODE -ne 0) {
+    $pointed = $false
+    try { & $Launcher _example $exNew | Out-Null; $pointed = ($LASTEXITCODE -eq 0) } catch { $pointed = $false }
+    if (-not $pointed) {
         # a Durweg before v1.7.0 (DURWEG_VERSION) has no _example and still lets the example be removed
-        if ($ex) { & $Launcher library remove write-your-method 2>$null | Out-Null }
+        if ($ex) { try { & $Launcher library remove write-your-method | Out-Null } catch { } }
         & $Launcher library add $exNew --name write-your-method | Out-Null
         if ($LASTEXITCODE -ne 0) { Stop-Install 'The example could not be added to the library.' '示例无法加入方法库。' }
     }
