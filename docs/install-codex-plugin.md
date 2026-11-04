@@ -8,7 +8,7 @@ terminal, nothing to download by hand. You get the same skills as with the insta
 
 This first version works on **macOS, Linux and WSL on Windows**, and was tested with the Codex CLI
 0.166.0 on Linux and WSL (not with the Codex desktop app or the IDE extensions). On Windows itself,
-use the installer from the [README](../README.md#option-c-with-the-installer).
+use the installer from the [installer](install.md#option-c-with-the-installer).
 
 ## 💻 What you need
 

@@ -2,203 +2,65 @@
 
 # Durweg
 
-[✨ Features](#-features) · [💻 Requirements](#-system-requirements) · [🧭 Install](#-install) · [📅 Every day](#-every-day) · [🚀 Example](#-example-write-down-your-method) · [🔐 Public and private](#-public-and-private-workflows) · [🙋 I want to](#-i-want-to-) · [🛠️ Common problems](#%EF%B8%8F-common-problems) · **[📚 Workflows you can install](https://github.com/durweg/durweg-workflows)**
+[💻 Requirements](#-system-requirements) · [🧭 Install](#-install) · [🚀 First run](#-first-run) · [🙋 What you can do](#-what-you-can-do) · [🛠️ Common problems](#%EF%B8%8F-common-problems) · [🙏 Thanks](#-special-thanks) · **[📚 Workflows you can install](https://github.com/durweg/durweg-workflows)**
 
-**Turn the way you and your AI always work into a workflow: set it up once, and every new project runs on it; the AI delivers step by step, every step is checked automatically, and it stops only where you chose, so you can look at the results and confirm before it goes on.**
+**Durweg lets the AI agents you already use do what you need on their own, in your own way of working: you write your method down once as a workflow, and the work runs through it step by step; you are asked only where you chose, to decide, to do something yourself or to accept a result.**
 
-For example, once it is set up, every new project runs like this:
+It has two cores:
 
-```mermaid
-flowchart LR
-    L["Lead AI<br>splits the work"] --> A1["AI ①"] & A2["AI ②"] & A3["AI ③"]
-    A1 & A2 & A3 --> S["AI sums up"]
-    S --> Y["You look at the result and confirm"]
-```
-
-Each step must pass before work moves on: Durweg checks automatically that the result is there and complete, and when you write the workflow you decide which steps wait for your confirmation (it can be just once, at the end). If a check fails or you request changes, the work is revised and reviewed again. Each step can use existing skills and plugins; Durweg manages the order, checks, your approval and records.
-
-## ✨ Features
-
-| Feature | What you get | More |
+| Core | What it does | Start with |
 | :--- | :--- | :--- |
-| **Use the agents you already have open** | • Durweg calls no model API and passes no messages between agents<br>• Each step is done in a Claude Code, Codex or other session you have open; they all read and write the same run record | [Every day](#-every-day) |
-| **You decide what it costs** | • The steps are fixed when you write the workflow; no model decides on the fly how many AIs to send out<br>• If you use these agents through a subscription (such as Claude or ChatGPT), there are no extra model API fees (your subscription still has its usage limits) | [Workflow format](docs/workflow-format.md) |
-| **Checked automatically, asks you only where you chose** | • Every step is checked automatically for a complete result; if it fails, the work is revised before moving on<br>• You decide which steps wait for your confirmation; it can be just once, at the end | [Workflow format](docs/workflow-format.md) |
-| **A record of every step** | • The steps, files, check results and your confirmations of each run are kept in your project's `runs/`<br>• `durweg check` checks the whole record again | [Where your files are](docs/files.md) |
-| **Pick up where it stopped** | • Which step a run has reached is saved on disk: if the session closes or the computer crashes, a new agent (it can be a different one) carries on from the step where it stopped<br>• Changes not yet saved at the moment of a crash may be lost | [Where your files are](docs/files.md) |
-| **Reuse and share your method** | • Write your way of working down once as a workflow, and every new project runs on it<br>• Keep it in your own library, publish it on GitHub (public or private), or install workflows others made | [Public and private workflows](#-public-and-private-workflows) |
-| **Not tied to one agent** | • Install it as a Claude Code plugin, a Codex plugin, or with the installer<br>• Works on Windows, Mac and Linux | [Install](#-install) |
+| **Workflows** | • Your way of working as steps; each step is checked before the next one starts<br>• The agent stops only at the steps where you want to confirm, and keeps a record of every run | `Run write-your-method with durweg.` ([first run](#-first-run)) |
+| **Automation** | • Requests become cards on a board of your own (a private GitHub Project); agents take them one after another and a second agent reviews each<br>• What needs you (decide, do, accept) waits there until you come back | the plugin [durweg-todo](https://github.com/durweg/durweg-todo) |
+
+Durweg calls no model API: the work is done in the Claude Code or Codex sessions you have open. More on each feature: [What Durweg does](docs/features.md).
 
 ## 💻 System requirements
 
 | Your computer | What it needs |
 | :--- | :--- |
-| **Windows** | • Windows 10 or 11<br>• Python 3.9 or newer; if it is missing, the installer installs Python 3.12 for you |
-| **Mac** | • Python 3.9 or newer at `/usr/bin/python3`; it comes with Apple's developer tools (Command Line Tools), which the installer asks macOS to install if they are missing<br>• Older developer tools bring Python 3.7 or 3.8; check with `/usr/bin/python3 --version` and, if it is older than 3.9, update them in System Settings → General → Software Update |
-| **Linux** | • Python 3.9 or newer, `curl` and `tar`<br>• On Debian or Ubuntu the installer installs what is missing (sudo asks for your password) |
+| **Windows** | Windows 10 or 11; Python 3.9 or newer (the installer adds it if missing) |
+| **Mac** | Python 3.9 or newer at `/usr/bin/python3` (Apple's developer tools; [details](docs/install.md#-system-requirements)) |
+| **Linux** | Python 3.9 or newer, `curl` and `tar` |
 
 ## 🧭 Install
 
-**Three ways: pick one (they are not steps in a row).** All give you the same Durweg and the same `~/Durweg` folder.
+**Three ways: pick one (they are not steps in a row).** All give you the same Durweg.
 
 | Your situation | Use |
 | :--- | :--- |
-| You already use Claude Code | [Option A: as a Claude Code plugin](#option-a-as-a-claude-code-plugin) |
-| You already use Codex (on Mac, Linux or WSL) | [Option B: as a Codex plugin](#option-b-as-a-codex-plugin) |
-| No AI agent on your computer yet, Codex on Windows itself, or Antigravity | [Option C: with the installer](#option-c-with-the-installer) |
+| You already use Claude Code | the steps below (a Claude Code plugin) |
+| You already use Codex (Mac, Linux or WSL) | [as a Codex plugin](docs/install.md#option-b-as-a-codex-plugin) |
+| No AI agent yet, Codex on Windows itself, or Antigravity | [the installer](docs/install.md#option-c-with-the-installer) |
 
-### Option A: as a Claude Code plugin
+As a Claude Code plugin (Windows, Mac, Linux or WSL, with Python 3.9 or newer and git):
 
-If you already use Claude Code (on Windows, Mac, Linux or WSL) and have Python 3.9 or newer and git:
+1. Open a terminal and start Claude Code: `claude`.
+2. Type `/plugin install durweg --marketplace durweg/durweg`.
+3. Type `/reload-plugins`.
 
-1. In Claude Code, type `/plugin install durweg --marketplace durweg/durweg`.
-2. Type `/reload-plugins`.
-3. Tell Claude: `Run write-your-method with durweg.` It first asks which language you want, then
-   starts the [example](#-example-write-down-your-method).
+All three ways, the questions the installer asks, updating and removing: [Install Durweg](docs/install.md).
 
-Updating, removing and an older Claude Code:
-[Installing Durweg as a Claude Code plugin](docs/install-plugin.md).
+## 🚀 First run
 
-✅ Done: skip Options B and C below and go on with [Every day](#-every-day).
+Tell your agent: `Run write-your-method with durweg.` It asks which language you want, then helps you write down one way you work (for example a weekly report) as a workflow, runs it once and, if you like, writes it up as a case page.
 
-### Option B: as a Codex plugin
+Done looks like this: the agent tells you the check result is `PASS`, and "Show me my durweg workflows" lists your new workflow. From then on: "Run <name> with durweg." Step by step: [Example: write down your method](docs/example.md); how to start each day: [Every day](docs/every-day.md).
 
-If you already use the Codex CLI (on Mac, Linux or WSL) and have Python 3.9 or newer and git:
+## 🙋 What you can do
 
-1. In a terminal (not inside Codex), run `codex plugin marketplace add durweg/durweg`.
-2. Run `codex plugin add durweg@durweg`.
-3. Start a new Codex session and tell it: `Run write-your-method with durweg.`
-
-Codex keeps `~/Durweg` read-only in its sandbox, so it asks you to approve the commands that write
-there. Details, updating and removing: [Installing Durweg as a Codex plugin](docs/install-codex-plugin.md).
-
-✅ Done: skip Option C below and go on with [Every day](#-every-day).
-
-### Option C: with the installer
-
-For Windows, Mac and Linux, also when you have no AI agent yet.
-
-> 🤖 **Rather not do it yourself?** Send this to the AI on your computer (Claude Code, Codex …):
->
-> `Please install Durweg for me as described in https://github.com/durweg/durweg/blob/main/docs/install-with-your-ai.md`
->
-> It finds out which computer you have and runs the installer; when it is done, start your AI again. An AI chat in the browser cannot reach your computer and cannot do this.
-
-You need no GitHub account. You need an account for Claude Code or Codex (use counts against your
-own plan); if neither is on your computer yet, the installer installs one. If you have Antigravity, it gets
-Durweg too.
-
-**Run the installer** (pick the row for your computer):
-
-| Your computer | What to do |
+| I want to | Where |
 | :--- | :--- |
-| **Windows**<br>(with or without WSL) | • Download [`Durweg-Install.bat`](https://github.com/durweg/durweg/releases/latest/download/Durweg-Install.bat) and double-click it in Windows<br>• To install into WSL, use it too and choose WSL in the installer; you do not open WSL or type commands yourself |
-| **Mac** | Download [`Durweg-Install-macOS.zip`](https://github.com/durweg/durweg/releases/latest/download/Durweg-Install-macOS.zip), unzip it and double-click `Durweg-Install.command` |
-| **Linux**<br>(not WSL on Windows) | In a terminal, run:<br>`curl -fsSL https://raw.githubusercontent.com/durweg/durweg/v1.8.0/install.sh \| bash` |
-
-The installer asks for your language first (on Windows also where to install: Windows or WSL),
-sets everything up, opens this page in your browser, starts your agent, which first asks whether to walk you through the [example](#-example-write-down-your-method) now; say no, and it tells you how to start it later.
-What to answer at each question on the way: see [Questions during installation](#-questions-during-installation)
-at the end of this page.
-
-## 📅 Every day
-
-1. **Open a terminal.** Windows: open Windows Terminal (if Durweg is in WSL, open "Ubuntu" from the
-   Start menu). Mac or Linux: open Terminal.
-2. **Go to your project folder:** `cd ~/projects/my-project` (on Windows itself, for example
-   `cd C:\Users\<you>\projects\my-project`). Each run is kept in a `runs/` folder there.
-3. **Start your agent:** type `claude` (Claude Code) or `codex` (Codex) and press Enter.
-4. **Tell it what to do:**
-   - Run a workflow: "Run weekly-report with durweg." It goes step by step, stops where a step's
-     check fails, and asks you where your method says you decide.
-   - Make a new workflow: "Run write-your-method with durweg." (the guide from the
-     [example](#-example-write-down-your-method)).
-   - See what you have: "Show me my durweg workflows."
-
-## 🚀 Example: write down your method
-
-This example shows how Durweg turns one of your fixed ways of working into a workflow: taking the
-weekly status report, you make your own workflow `weekly-report`, run it once, and finally write it up as a case page
-to keep or share. After the installation your agent asks whether to do it now; to do it later (or make
-another one), follow these steps.
-
-1. **Open a terminal** (step 1 of "Every day").
-2. **Make a practice folder and go into it:** `mkdir -p ~/projects/first-method && cd ~/projects/first-method`.
-   The record of this run goes there.
-3. **Start your agent** (step 3 of "Every day").
-4. **Tell it:** "Run write-your-method with durweg." It asks what you want to have when the work is
-   done and how you do the weekly report now (collect, write, approve and send), looks for something
-   that already does it, suggests improvements, and you confirm the steps it shows you.
-5. **Name it, and write it up as a case (optional):** after the first run it asks what to call it, then
-   whether to write a case. If you want one, tell it what you would tell others; it turns your method, the steps, your own words at each
-   confirmation and the first run's result into one web page in `~/Durweg/cases/`. Double-click it
-   to open it in your browser, or send it to someone.
-
-Done looks like this: the agent tells you the check result is `PASS`, and "Show me my durweg
-workflows" lists `weekly-report`. From then on: "Run weekly-report with durweg."
-
-**A real case:** with this guide the workflow `human-readme` was written, and then used to rewrite Durweg's own README. The method, the steps, the user's
-own words at each step and the lessons are on this case page (English, with a switch to Chinese):
-[A README for humans · Durweg case](https://claude.ai/artifact/LGnCog4wnBmgMAWJg1Xmi4).
-To use the workflow yourself: [durweg-human-readme](https://github.com/durweg/durweg-human-readme).
-
-## 🔐 Public and private workflows
-
-Your method can be shared with others, or kept to yourself:
-
-| | Public | Private |
-| :--- | :--- | :--- |
-| **Kept in** | A public GitHub repository | Your private GitHub repository |
-| **Can be listed in** | The [public catalog](https://github.com/durweg/durweg-workflows): once accepted, anyone can install it by name | Your private catalog |
-| **Who can use it** | Everyone | • Only you (and whoever you give access on GitHub)<br>• Another computer: once it has access and your private catalog is added, it installs and updates it by name |
-
-Tell your agent "Publish <name> with durweg"; it asks whether public or private, and the first time
-you publish a private one, whether to make your private catalog ([publishing](docs/publish.md)).
-
-## 🙋 I want to …
-
-| I want to | How |
-| :--- | :--- |
-| Write a workflow by hand | [workflow format](docs/workflow-format.md) |
-| Check a run | `durweg check <run folder>` |
-| Change the language | `durweg config language en` (or `zh`) |
-| Install somewhere else (on Windows: into WSL) | Run the installer again and type `c` when it asks whether to change Durweg |
-| Compare a run with the agent's own session files | The optional plugin [durweg-audit](https://github.com/durweg/durweg-audit) |
-| Find my settings, cases and run records | [Where your files are](docs/files.md) |
-| Install a ready-made workflow | Tell your agent "Show me the durweg workflows I can install", then `durweg library add <name>` ([catalogs](docs/workflow-format.md#catalogs)) |
-| Browse, add and update workflows in your browser instead of typing commands | `durweg ui` ([the management page](docs/ui.md)) |
-| Update Durweg and the workflows you installed | • `durweg update` ([updating](docs/update.md))<br>• As a Claude Code plugin: Durweg itself with `/plugin update durweg` ([plugin](docs/install-plugin.md#-updating-and-removing)) |
-| Share a workflow of yours (on GitHub, public or private) | Tell your agent "Publish <name> with durweg" ([publishing](docs/publish.md)) |
-| Remove Durweg | • `durweg uninstall`: keeps `~/Durweg` and your runs ([uninstall](docs/uninstall.md))<br>• As a Claude Code plugin: `/plugin uninstall durweg` |
+| run my workflows every day | [Every day](docs/every-day.md) |
+| let agents work off a board and come to me only when needed | [durweg-todo](https://github.com/durweg/durweg-todo) |
+| install a ready-made workflow | [catalog](https://github.com/durweg/durweg-workflows), then `durweg library add <name>` |
+| share a workflow of mine, public or private | [Publishing](docs/publish.md) |
+| update Durweg, or remove it | [Updating](docs/update.md) · [Uninstalling](docs/uninstall.md) |
+| everything else (writing a workflow by hand, the management page, where my files are …) | [All docs](docs/README.md) |
 
 ## 🛠️ Common problems
 
-- **Windows 10: the Claude login does not work in the installer window.** Run the installer in
-  Windows Terminal instead: open a Command Prompt tab, drag `Durweg-Install.bat` into it and press
-  Enter ([step by step](docs/troubleshooting.md#windows-10-the-claude-login-does-not-work-in-the-installer-window)).
-- **You installed another agent after Durweg (say Codex first, Claude Code later):** the new agent
-  cannot use Durweg yet. Run the installer again and press Enter when it asks whether to change
-  Durweg; it sets Durweg up for every agent on the computer.
-- **Your agent is installed, but the installer says none was found:** your agent is not where the
-  system looks (for example you start it with a script). Choose **3** at "which one should be
-  installed": Durweg sets itself up for Claude Code and Codex; start your agent as usual and tell it
-  "Run write-your-method with durweg."
-- **Mac: the installer says Durweg needs Python 3.9 or newer, though your Mac has a newer one:** an
-  older Python (for example Anaconda's 3.8) comes first in Terminal. Stop it from starting on its
-  own, then run the installer again; no need to reinstall Python
-  ([step by step](docs/troubleshooting.md#mac-the-installer-says-durweg-needs-python-39-or-newer)).
-
-## 💬 Questions during installation
-
-| Question | What to choose |
-| :--- | :--- |
-| **Language** | The language your agent will use; change it later with `durweg config language` |
-| **Where to install** (Windows) | • Usually **Windows**<br>• **WSL** (Linux inside Windows) if you also want workflows that need Linux |
-| **No WSL yet** | • Approve the administrator prompt and restart<br>• Open "Ubuntu" from the Start menu once to choose a Linux user name and password<br>• Double-click the installer again; it remembers your choices |
-| **"Windows protected your PC"** | Click **More info → Run anyway** |
-| **macOS blocked the installer** | • Open System Settings → Privacy & Security and allow it<br>• If macOS installs its developer tools first, double-click the file again when that has finished |
-| **Claude Code or Codex** | • Asked only when no agent is found; press Enter for Claude Code, then log in to it once in your browser<br>• You already have an agent and start it your own way (for example with a script): choose **3**; nothing new is installed |
-| **Asked on a second run whether to change Durweg** | • Enter: keep the last choices (update or repair)<br>• `c`: choose again and install Durweg anew |
+Installer windows, an agent installed after Durweg, an older Python on a Mac: [Common problems](docs/troubleshooting.md).
 
 ## 🙏 Special thanks
 

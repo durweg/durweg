@@ -18,6 +18,19 @@ command `gh` (logged in once with `gh auth login` and `gh auth setup-git`); usin
 Done looks like this: it prints `created <you>/durweg-<name>` and `pushed …`; the workflow is on
 GitHub, and `durweg library list` still shows it in your own folder.
 
+## 🔐 Public and private workflows
+
+Your method can be shared with others, or kept to yourself:
+
+| | Public | Private |
+| :--- | :--- | :--- |
+| **Kept in** | A public GitHub repository | Your private GitHub repository |
+| **Can be listed in** | The [public catalog](https://github.com/durweg/durweg-workflows): once accepted, anyone can install it by name | Your private catalog |
+| **Who can use it** | Everyone | • Only you (and whoever you give access on GitHub)<br>• Another computer: once it has access and your private catalog is added, it installs and updates it by name |
+
+Tell your agent "Publish <name> with durweg"; it asks whether public or private, and the first time
+you publish a private one, whether to make your private catalog ([publishing](publish.md)).
+
 ## What goes into the repository
 
 | Goes in | Never goes in |

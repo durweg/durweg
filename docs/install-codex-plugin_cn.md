@@ -4,7 +4,7 @@
 
 如果你已经在用 Codex CLI，可以把 Durweg 装成 Codex 插件：在终端里运行两条命令，不用手动下载。装好后的 skill 和用安装器装的一样，你的工作流也照样放在 `~/Durweg` 文件夹里。
 
-第一版支持 **macOS、Linux 和 Windows 里的 WSL**，在 Linux 和 WSL 上用 Codex CLI 0.166.0 测过（没有测 Codex 桌面版和 IDE 插件）。在 Windows 本身上，请用 [README](../README_cn.md#方式-c用安装程序) 里的安装程序。
+第一版支持 **macOS、Linux 和 Windows 里的 WSL**，在 Linux 和 WSL 上用 Codex CLI 0.166.0 测过（没有测 Codex 桌面版和 IDE 插件）。在 Windows 本身上，请用 [安装页](install_cn.md#方式-c用安装程序)里的安装程序。
 
 ## 💻 需要什么
 

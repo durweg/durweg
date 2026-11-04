@@ -2,6 +2,23 @@
 
 # Common problems
 
+## 🛠️ In short
+
+- **Windows 10: the Claude login does not work in the installer window.** Run the installer in
+  Windows Terminal instead: open a Command Prompt tab, drag `Durweg-Install.bat` into it and press
+  Enter ([step by step](#windows-10-the-claude-login-does-not-work-in-the-installer-window)).
+- **You installed another agent after Durweg (say Codex first, Claude Code later):** the new agent
+  cannot use Durweg yet. Run the installer again and press Enter when it asks whether to change
+  Durweg; it sets Durweg up for every agent on the computer.
+- **Your agent is installed, but the installer says none was found:** your agent is not where the
+  system looks (for example you start it with a script). Choose **3** at "which one should be
+  installed": Durweg sets itself up for Claude Code and Codex; start your agent as usual and tell it
+  "Run write-your-method with durweg."
+- **Mac: the installer says Durweg needs Python 3.9 or newer, though your Mac has a newer one:** an
+  older Python (for example Anaconda's 3.8) comes first in Terminal. Stop it from starting on its
+  own, then run the installer again; no need to reinstall Python
+  ([step by step](#mac-the-installer-says-durweg-needs-python-39-or-newer)).
+
 ## Windows 10: the Claude login does not work in the installer window
 
 Windows 10's old console window cannot show modern command-line programs well; Claude Code's login
