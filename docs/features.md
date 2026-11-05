@@ -15,6 +15,19 @@ flowchart LR
 
 Each step must pass before work moves on: Durweg checks automatically that the result is there and complete, and when you write the workflow you decide which steps wait for your confirmation (it can be just once, at the end). If a check fails or you request changes, the work is revised and reviewed again. Each step can use existing skills and plugins; Durweg manages the order, checks, your approval and records.
 
+## 🧩 Skills, plugins, harnesses and Durweg
+
+**Durweg replaces none of these: a harness runs the agent, skills and plugins add to what the agent can do, and Durweg gives a piece of work its steps, checks and record.**
+
+| | What it is | Examples | How it works with Durweg |
+| :--- | :--- | :--- | :--- |
+| **Harness** | The program that runs a model: it calls the model in a loop, runs its tools, and handles permissions and context | Claude Code, Codex | • Durweg is not a harness: it calls no model and runs inside the one you already use<br>• The agent calls the `durweg` commands, not the other way round |
+| **Skill** | Instructions an agent loads when a task needs them | A checklist for reviewing code | • Any step of a workflow can use one<br>• Durweg's own skill, `run-workflow`, teaches the agent to run a workflow |
+| **Plugin** | A package that adds skills, commands and similar things to an agent | [durweg-todo](https://github.com/durweg/durweg-todo) | • Any step of a workflow can use one<br>• It is one way to [install Durweg](install.md), and a plugin can bring workflows with it, as durweg-todo does |
+| **Durweg** | A tool that takes a piece of work through your steps | `durweg start <workflow> <run-name>` | • It keeps the order of the steps, checks each one, waits for your confirmation where you chose and keeps the record |
+
+A skill or plugin can also describe steps and checks, and for many jobs that is enough. Durweg is a ready-made way to do it when you want the same steps, checks and record in every run, across Claude Code, Codex and other agents.
+
 ## ✨ Features
 
 | Feature | What you get | More |
