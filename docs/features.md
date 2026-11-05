@@ -17,7 +17,7 @@ Each step must pass before work moves on: Durweg checks automatically that the r
 
 ## 🧩 Skills, plugins, harnesses and Durweg
 
-**Durweg replaces none of these: a harness runs the agent, skills and plugins add to what the agent can do, and Durweg gives a piece of work its steps, checks and record.**
+**Durweg replaces none of these: a harness runs the model, skills and plugins add to what the agent can do, and Durweg gives a piece of work its steps, checks and record.**
 
 | | What it is | Examples | How it works with Durweg |
 | :--- | :--- | :--- | :--- |

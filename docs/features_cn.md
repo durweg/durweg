@@ -17,7 +17,7 @@ flowchart LR
 
 ## 🧩 skill、plugin、harness 和 Durweg 的关系
 
-**Durweg 不替代其中任何一个：harness 负责运行 agent，skill 和 plugin 增加 agent 能做的事，Durweg 给一件工作定下步骤、检查和记录。**
+**Durweg 不替代其中任何一个：harness 负责运行模型，skill 和 plugin 增加 agent 能做的事，Durweg 给一件工作定下步骤、检查和记录。**
 
 | | 是什么 | 例子 | 和 Durweg 怎么配合 |
 | :--- | :--- | :--- | :--- |
