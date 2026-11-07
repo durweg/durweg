@@ -8,7 +8,7 @@
 
 | Page | What it is for |
 | :--- | :--- |
-| [What Durweg does](features.md) | the two cores and what you get from each feature |
+| [What Durweg does](features.md) | what you get from each feature |
 | [Install Durweg](install.md) | system requirements, the three ways to install, the questions the installer asks |
 | [Every day](every-day.md) | open a terminal, go to your project, start your agent, say what to run |
 | [Example: write down your method](example.md) | your first workflow from scratch, with a real case |

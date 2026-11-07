@@ -8,7 +8,7 @@
 
 | 页面 | 用来做什么 |
 | :--- | :--- |
-| [Durweg 能做什么](features_cn.md) | 两个核心，每个特点能给你什么 |
+| [Durweg 能做什么](features_cn.md) | 每个特点能给你什么 |
 | [安装 Durweg](install_cn.md) | 系统要求、三种安装方式、安装时会遇到的提问 |
 | [每天怎么用](every-day_cn.md) | 打开终端、进项目文件夹、启动 agent、说要运行什么 |
 | [案例：写下你的方法](example_cn.md) | 从头做第一个工作流，附一个真实案例 |

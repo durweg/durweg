@@ -6,12 +6,7 @@
 
 **Durweg lets the AI agents you already use do what you need on their own, in your own way of working: you write your method down once as a workflow, and the work runs through it step by step; you are asked only where you chose, to decide, to do something yourself or to accept a result.**
 
-It has two cores:
-
-| Core | What it does | Start with |
-| :--- | :--- | :--- |
-| **Workflows** | • Your way of working as steps; each step is checked before the next one starts<br>• The agent stops only at the steps where you want to confirm, and keeps a record of every run | `Run write-your-method with durweg.` ([first run](#-first-run)) |
-| **Automation** | • Requests become cards on a board of your own (a private GitHub Project); agents take them one after another and a second agent reviews each<br>• What needs you (decide, do, accept) waits there until you come back | the plugin [durweg-todo](https://github.com/durweg/durweg-todo) |
+At its core are **workflows**: your way of working as steps, each checked before the next one starts. The agent stops only at the steps where you want to confirm, and keeps a record of every run. Start with `Run write-your-method with durweg.` ([first run](#-first-run)).
 
 Durweg calls no model API: the work is done in the Claude Code or Codex sessions you have open. More on each feature: [What Durweg does](docs/features.md).
 
@@ -52,7 +47,6 @@ Done looks like this: the agent tells you the check result is `PASS`, and "Show 
 | I want to | Where |
 | :--- | :--- |
 | run my workflows every day | [Every day](docs/every-day.md) |
-| let agents work off a board and come to me only when needed | [durweg-todo](https://github.com/durweg/durweg-todo) |
 | install a ready-made workflow | [catalog](https://github.com/durweg/durweg-workflows), then `durweg library add <name>` |
 | share a workflow of mine, public or private | [Publishing](docs/publish.md) |
 | update Durweg, or remove it | [Updating](docs/update.md) · [Uninstalling](docs/uninstall.md) |

@@ -23,7 +23,7 @@ flowchart LR
 | :--- | :--- | :--- | :--- |
 | **Harness** | 运行模型的程序：循环调用模型、执行工具、管理权限和上下文 | Claude Code、Codex | • Durweg 不是 harness：它不调用模型，就在你已经在用的 harness 里运行<br>• 是 agent 调用 `durweg` 命令，不是反过来 |
 | **Skill** | agent 在任务需要时加载的说明 | 一份审查代码的清单 | • 工作流的任何一步都可以使用<br>• Durweg 自带的 skill `run-workflow` 教 agent 怎么跑工作流 |
-| **Plugin** | 给 agent 增加 skill、命令等内容的安装包 | [durweg-todo](https://github.com/durweg/durweg-todo) | • 工作流的任何一步都可以使用<br>• 它是[安装 Durweg](install_cn.md)的一种方式；plugin 也可以自带工作流，durweg-todo 就是这样 |
+| **Plugin** | 给 agent 增加 skill、命令等内容的安装包 | Durweg 自己的 Claude Code 插件 | • 工作流的任何一步都可以使用<br>• 它是[安装 Durweg](install_cn.md)的一种方式；plugin 也可以自带工作流 |
 | **Durweg** | 带着一件工作走完你定的步骤的工具 | `durweg start <workflow> <run-name>` | • 管步骤的先后、检查每一步、在你选的地方等你确认，并保留记录 |
 
 skill 或 plugin 也能写明步骤和检查，很多工作这样就够了。如果你希望每次运行的步骤、检查和记录都一样，并且在 Claude Code、Codex 等不同 agent 上都一样，Durweg 是现成的做法。

@@ -6,12 +6,7 @@
 
 **Durweg 让你已经在用的 AI agent 按你自己的做法，把你要的事自动做完：你把方法写成一次工作流，以后的活就一步一步照着走；只在你选定的地方来找你——要你定、要你亲手做，或者要你验收。**
 
-它有两个核心：
-
-| 核心 | 做什么 | 从哪开始 |
-| :--- | :--- | :--- |
-| **工作流** | • 你的做法写成步骤，每一步检查通过才往下走<br>• 只在你要确认的那几步停下来，每次运行都有记录 | `用 durweg 运行 write-your-method。`（[第一次运行](#-第一次运行)） |
-| **自动化** | • 需求变成你自己看板（私有 GitHub Project）上的卡，agent 一张接一张做，每张由另一个 agent 审<br>• 要你定、要你做、要你验收的，停在那里等你回来 | 插件 [durweg-todo](https://github.com/durweg/durweg-todo) |
+它的核心是**工作流**：你的做法写成步骤，每一步检查通过才往下走。只在你要确认的那几步停下来，每次运行都有记录。从这句开始：`用 durweg 运行 write-your-method。`（[第一次运行](#-第一次运行)）。
 
 Durweg 不调用模型 API：活在你开着的 Claude Code 或 Codex 会话里做。每个特点详细说明：[Durweg 能做什么](docs/features_cn.md)。
 
@@ -52,7 +47,6 @@ Durweg 不调用模型 API：活在你开着的 Claude Code 或 Codex 会话里�
 | 我想 | 去哪看 |
 | :--- | :--- |
 | 每天运行我的工作流 | [每天怎么用](docs/every-day_cn.md) |
-| 让 agent 按看板干活，只在需要时找我 | [durweg-todo](https://github.com/durweg/durweg-todo) |
 | 装一个现成的工作流 | [目录](https://github.com/durweg/durweg-workflows)，然后 `durweg library add <名字>` |
 | 分享我的工作流，公开或私密 | [发布](docs/publish_cn.md) |
 | 更新或卸载 Durweg | [更新](docs/update_cn.md) · [卸载](docs/uninstall_cn.md) |
