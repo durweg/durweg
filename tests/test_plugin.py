@@ -1,5 +1,6 @@
 """Durweg as a plugin (Claude Code, Codex): the plugin mode, the launchers, the release packages."""
 
+import io
 import json
 import os
 import shutil
@@ -495,6 +496,26 @@ class ReleasePackage(unittest.TestCase):
         names = [rel for _, rel in package.files()]
         self.assertTrue(any(n.startswith("durweg/") for n in names))
         self.assertFalse([n for n in names if n.startswith(".claude-plugin") or n == ".gitattributes"])
+
+    def test_package_py_and_git_archive_ship_the_same_files(self):
+        # tools/package.py (SKIP) and git archive (.gitattributes export-ignore) must ship the same
+        # tracked files. Only tracked files are compared: an untracked file is in neither list.
+        # --worktree-attributes reads .gitattributes as it is in the working tree (the one to commit).
+        if shutil.which("git") is None or not (ROOT / ".git").exists():
+            self.skipTest("needs the git checkout")
+        def git_out(*args):
+            return subprocess.run(["git", "-C", str(ROOT), *args], check=True, capture_output=True).stdout
+        tracked = set(git_out("ls-files", "-z").decode("utf-8").split("\0")) - {""}
+        with tarfile.open(fileobj=io.BytesIO(git_out("archive", "--format=tar", "--worktree-attributes", "HEAD"))) as t:
+            archived = {m.name for m in t.getmembers() if m.isfile()}
+        sys.path.insert(0, str(ROOT / "tools"))
+        try:
+            import package
+        finally:
+            sys.path.pop(0)
+        shipped = {rel for _, rel in package.files()} & tracked
+        self.assertEqual(sorted(archived - shipped), [], "in git archive but not in tools/package.py")
+        self.assertEqual(sorted(shipped - archived), [], "in tools/package.py but not in git archive")
 
 
 class Manifests(unittest.TestCase):
