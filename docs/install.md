@@ -6,9 +6,11 @@
 
 | Your computer | What it needs |
 | :--- | :--- |
-| **Windows** | • Windows 10 or 11<br>• Python 3.9 or newer; if it is missing, the installer installs Python 3.12 for you |
-| **Mac** | • Python 3.9 or newer at `/usr/bin/python3`; it comes with Apple's developer tools (Command Line Tools), which the installer asks macOS to install if they are missing<br>• Older developer tools bring Python 3.7 or 3.8; check with `/usr/bin/python3 --version` and, if it is older than 3.9, update them in System Settings → General → Software Update |
-| **Linux** | • Python 3.9 or newer, `curl` and `tar`<br>• On Debian or Ubuntu the installer installs what is missing (sudo asks for your password) |
+| **Windows** | • Windows 10 or 11<br>• Python 3.9 or newer; if it is missing, the installer installs Python 3.12 for you (the plugin options need it first: `winget install -e --id Python.Python.3.12`)<br>• For Option A and Option B: git, which is Git for Windows (Claude Code needs it there anyway) |
+| **Mac** | • Python 3.9 or newer at `/usr/bin/python3`; it comes with Apple's developer tools (Command Line Tools), which the installer asks macOS to install if they are missing<br>• Older developer tools bring Python 3.7 or 3.8; check with `/usr/bin/python3 --version` and, if it is older than 3.9, update them in System Settings → General → Software Update<br>• For Option A and Option B: git, from the same developer tools (`xcode-select --install`) |
+| **Linux** | • Python 3.9 or newer, `curl` and `tar`<br>• On Debian or Ubuntu (also in WSL) the installer installs what is missing (sudo asks for your password); for Option A and Option B: `sudo apt-get install -y python3 git`<br>• For Option A and Option B: git |
+
+To check them, run `python3 --version` (on Windows: `py -3 --version`) and `git --version` in a terminal.
 
 ## 🧭 Install
 

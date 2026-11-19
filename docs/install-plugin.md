@@ -11,11 +11,7 @@ The plugin works on **Windows, macOS, Linux and WSL on Windows**. Using Codex in
 
 ## 💻 What you need
 
-| Program | Check it in Claude Code by typing | If it is missing or older |
-| :--- | :--- | :--- |
-| Claude Code, signed in | `/status` | [Install Claude Code](https://code.claude.com/docs/en/setup) |
-| Python 3.9 or newer | `! python3 --version`<br>(Windows: `! py -3 --version`) | • Windows: `winget install -e --id Python.Python.3.12`<br>• Mac: `xcode-select --install`; older than 3.9: update it in System Settings → General → Software Update<br>• Debian or Ubuntu (also WSL): `sudo apt-get install -y python3` |
-| git | `! git --version` | • Windows: comes with Git for Windows, which Claude Code needs there anyway<br>• Mac: `xcode-select --install`<br>• Debian or Ubuntu (also WSL): `sudo apt-get install -y git` |
+You need Claude Code, signed in (`/status` in Claude Code shows it; [install Claude Code](https://code.claude.com/docs/en/setup)), and Python and git: see [system requirements](install.md#-system-requirements).
 
 `! claude --version` shows the version of Claude Code: the one-command install below needs 2.1.275
 or newer (`! claude update` brings it there).
@@ -31,7 +27,7 @@ With an older Claude Code, step 2 is two commands instead: `/plugin marketplace 
 then `/plugin install durweg@durweg`.
 
 **It worked when** `! durweg --version` shows a version followed by `(Claude Code plugin)`. If it
-says `needs Python 3.9 or newer`, install Python (table above) and try again. If it
+says `needs Python 3.9 or newer`, install Python ([system requirements](install.md#-system-requirements)) and try again. If it
 says `command not found` right after `/reload-plugins`, try once more: the session sometimes picks
 up the new command only on the next try.
 
