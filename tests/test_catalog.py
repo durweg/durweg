@@ -397,6 +397,18 @@ class GitReasons(unittest.TestCase):
         e = gitops.env()
         self.assertEqual((e["GIT_TERMINAL_PROMPT"], e["GCM_INTERACTIVE"]), ("0", "never"))
 
+    def test_redaction_keeps_no_part_of_the_userinfo(self):
+        from durweg import gitops
+        self.assertEqual(gitops.redact("https://u:p@ss@host/"), "https://host/")       # a password with "@" in it
+        self.assertEqual(gitops.redact("HTTPS://u:t@h/"), "HTTPS://h/")                # the scheme keeps its case
+        self.assertEqual(gitops.redact("https://github.com/a/b"), "https://github.com/a/b")   # nothing to hide
+        self.assertEqual(gitops.redact("git@github.com:a/b.git"), "git@github.com:a/b.git")   # ssh is not a URL here
+        text = ("error: failed to push some refs to 'https://u:t@h/a/b.git'\n"
+                "fatal: https://x@host/c not found, see https://u:a@h1/x and https://v:b@h2/y")
+        self.assertEqual(gitops.redact(text),
+                         "error: failed to push some refs to 'https://h/a/b.git'\n"
+                         "fatal: https://host/c not found, see https://h1/x and https://h2/y")
+
 
 if __name__ == "__main__":
     unittest.main()

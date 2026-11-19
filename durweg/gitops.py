@@ -13,7 +13,7 @@ import subprocess
 from .util import WfError
 
 TIMEOUT = 60
-_CRED = re.compile(r"(?i)\b(https?://)[^/\s@]+@")
+_CRED = re.compile(r"(?i)\b(https?://)[^/\s]*@")     # greedy: the userinfo may hold "@" (stops at the last one before the host)
 
 
 def redact(text):
