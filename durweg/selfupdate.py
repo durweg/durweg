@@ -29,7 +29,7 @@ from .util import current_platform, read_json
 REPO = "durweg/durweg"
 RELEASES = f"https://github.com/{REPO}/releases/latest"
 RAW = f"https://raw.githubusercontent.com/{REPO}"
-TAG = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
+TAG = re.compile(r"^v(\d+)\.(\d+)\.(\d+)\Z")          # \Z: "$" would accept a trailing newline
 TIMEOUT = 30
 
 

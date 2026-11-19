@@ -6,6 +6,7 @@ import json
 import os
 import threading
 import time
+import unittest
 from pathlib import Path
 
 from helpers import git, main
@@ -312,3 +313,11 @@ class CatalogLinesInUpdate(UpdateCase):
         self.assertIn("catalog public: refreshed", self.wf("library", "update"))
         os.environ["DURWEG_PUBLIC_CATALOG"] = str(self.tmp / "nothing.git")
         self.assertIn("the last copy is kept", self.wf("library", "update", "--quiet"))
+
+
+class ReleaseTags(unittest.TestCase):
+    def test_key_accepts_only_vX_Y_Z_without_a_trailing_newline(self):
+        from durweg import selfupdate
+        self.assertEqual(selfupdate.key("v1.2.3"), (1, 2, 3))
+        for bad in ("v1.2.3\n", "1.2.3", "v1.2", "v1.2.3.4", "V1.2.3", "v1.2.3-rc1", " v1.2.3", "v1.2.3 ", "", None):
+            self.assertIsNone(selfupdate.key(bad), repr(bad))
