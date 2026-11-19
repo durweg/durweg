@@ -687,3 +687,22 @@ class Config(WfCase):
         cfg = json.loads((Path(os.environ["DURWEG_HOME"]) / "config.json").read_text(encoding="utf-8"))
         self.assertEqual(cfg["language"], "zh")
         self.wf("config", "language", "fr", expect=1)
+
+
+class SchemaSubset(unittest.TestCase):
+    """durweg.gates.check_schema: JSON Schema equality (1 == 1.0, true is not 1)."""
+
+    def test_enum_does_not_take_booleans_for_numbers(self):
+        from durweg.gates import check_schema
+        self.assertEqual(check_schema(1, {"enum": [1, 2]}), [])
+        self.assertEqual(check_schema(2.0, {"enum": [1, 2]}), [])
+        self.assertTrue(check_schema(True, {"enum": [1, 2]}))
+        self.assertTrue(check_schema(False, {"enum": [0, 1]}))
+        self.assertTrue(check_schema(0, {"enum": [False]}))
+
+    def test_unique_items_treats_1_and_1_0_as_equal(self):
+        from durweg.gates import check_schema
+        self.assertTrue(check_schema([1, 1.0], {"uniqueItems": True}))
+        self.assertEqual(check_schema([1, 2], {"uniqueItems": True}), [])
+        self.assertEqual(check_schema([1, True], {"uniqueItems": True}), [])
+        self.assertTrue(check_schema(["a", "a"], {"uniqueItems": True}))

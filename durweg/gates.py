@@ -1,7 +1,6 @@
 """Artifact digests and the six gate types (design 3.2, 4)."""
 
 import glob
-import json
 import os
 import subprocess
 import sys
@@ -44,6 +43,19 @@ TYPES = {"object": dict, "array": list, "string": str, "boolean": bool,
          "integer": int, "number": (int, float)}
 
 
+def _json_equal(a, b):
+    """JSON Schema equality: 1 and 1.0 are equal; true is not equal to 1 or 1.0."""
+    if isinstance(a, bool) or isinstance(b, bool):
+        return isinstance(a, bool) and isinstance(b, bool) and a == b
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+        return a == b
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(_json_equal(x, y) for x, y in zip(a, b))
+    if isinstance(a, dict) and isinstance(b, dict):
+        return a.keys() == b.keys() and all(_json_equal(a[k], b[k]) for k in a)
+    return type(a) is type(b) and a == b
+
+
 def check_schema(value, schema, where="$"):
     errs = []
     t = schema.get("type")
@@ -51,7 +63,7 @@ def check_schema(value, schema, where="$"):
         ok = isinstance(value, TYPES[t]) and not (t in ("integer", "number") and isinstance(value, bool))
         if not ok:
             return [f"{where}: expected {t}"]
-    if "enum" in schema and value not in schema["enum"]:
+    if "enum" in schema and not any(_json_equal(value, e) for e in schema["enum"]):
         errs.append(f"{where}: must be one of {schema['enum']}")
     if isinstance(value, str):
         if md.empty(value):
@@ -71,8 +83,7 @@ def check_schema(value, schema, where="$"):
         if "maxItems" in schema and len(value) > schema["maxItems"]:
             errs.append(f"{where}: more than {schema['maxItems']} items")
         if schema.get("uniqueItems"):
-            seen = [json.dumps(v, sort_keys=True) for v in value]
-            if len(set(seen)) != len(seen):
+            if any(_json_equal(value[i], value[j]) for i in range(len(value)) for j in range(i + 1, len(value))):
                 errs.append(f"{where}: items are not unique")
         if "items" in schema:
             for i, v in enumerate(value):
