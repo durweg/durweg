@@ -183,16 +183,19 @@ class RunLock:
 
 
 def rmtree(path):
-    """shutil.rmtree that also removes read-only files (git objects on Windows); no error if absent."""
+    """shutil.rmtree that also removes read-only files (git objects on Windows); no error if absent.
+    Only a read-only file is made writable and removed again; folders are never changed, and any
+    error that is not fixed by that is raised (shutil.rmtree's own error, or the retry's)."""
     import shutil
     import stat
 
-    def again(func, p, _exc):
-        try:
-            os.chmod(p, stat.S_IWRITE)
-            func(p)
-        except OSError:
-            pass
+    def again(func, p, exc):
+        if isinstance(exc, tuple):                         # Python < 3.12 passes sys.exc_info()
+            exc = exc[1]
+        if func not in (os.unlink, os.remove) or os.path.islink(p) or not os.path.isfile(p):
+            raise exc
+        os.chmod(p, os.stat(p).st_mode | stat.S_IWRITE)
+        func(p)                                            # the retry: its error is raised
     if Path(path).exists():
         import sys
         if sys.version_info >= (3, 12):
