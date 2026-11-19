@@ -12,11 +12,7 @@ use the installer from the [installer](install.md#option-c-with-the-installer).
 
 ## 💻 What you need
 
-| Program | Check it in a terminal | If it is missing or older |
-| :--- | :--- | :--- |
-| Codex CLI, signed in | `codex --version` | [Install the Codex CLI](https://developers.openai.com/codex/cli) |
-| Python 3.9 or newer | `python3 --version` | • Mac: `xcode-select --install`; older than 3.9: update it in System Settings → General → Software Update<br>• Debian or Ubuntu (also WSL): `sudo apt-get install -y python3` |
-| git | `git --version` | • Mac: `xcode-select --install`<br>• Debian or Ubuntu (also WSL): `sudo apt-get install -y git` |
+You need the Codex CLI, signed in (`codex --version` in a terminal; [install the Codex CLI](https://developers.openai.com/codex/cli)), and Python and git: see [system requirements](install.md#-system-requirements).
 
 ## 🧭 Install
 

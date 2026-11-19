@@ -6,9 +6,11 @@
 
 | 你的电脑 | 需要什么 |
 | :--- | :--- |
-| **Windows** | • Windows 10 或 11<br>• Python 3.9 或更新；没有的话，安装程序会帮你装 Python 3.12 |
-| **Mac** | • `/usr/bin/python3` 是 Python 3.9 或更新：它来自苹果的开发者工具（Command Line Tools），没有的话安装程序会让 macOS 装上<br>• 旧的开发者工具带的是 Python 3.7 或 3.8：用 `/usr/bin/python3 --version` 查看，低于 3.9 就在“系统设置 → 通用 → 软件更新”里更新它 |
-| **Linux** | • Python 3.9 或更新、`curl` 和 `tar`<br>• Debian 或 Ubuntu 上，缺的东西安装程序会帮你装（sudo 会要你的系统密码） |
+| **Windows** | • Windows 10 或 11<br>• Python 3.9 或更新；没有的话，安装程序会帮你装 Python 3.12（装插件的方式要先装好它：`winget install -e --id Python.Python.3.12`）<br>• 方式 A 和方式 B 需要 git：就是 Git for Windows（Claude Code 在 Windows 上本来就要它） |
+| **Mac** | • `/usr/bin/python3` 是 Python 3.9 或更新：它来自苹果的开发者工具（Command Line Tools），没有的话安装程序会让 macOS 装上<br>• 旧的开发者工具带的是 Python 3.7 或 3.8：用 `/usr/bin/python3 --version` 查看，低于 3.9 就在“系统设置 → 通用 → 软件更新”里更新它<br>• 方式 A 和方式 B 需要 git：和开发者工具一起装（`xcode-select --install`） |
+| **Linux** | • Python 3.9 或更新、`curl` 和 `tar`<br>• Debian 或 Ubuntu（WSL 里也是）上，缺的东西安装程序会帮你装（sudo 会要你的系统密码）；方式 A 和方式 B 则用 `sudo apt-get install -y python3 git`<br>• 方式 A 和方式 B 需要 git |
+
+检查方法：在终端里运行 `python3 --version`（Windows 上是 `py -3 --version`）和 `git --version`。
 
 ## 🧭 安装
 

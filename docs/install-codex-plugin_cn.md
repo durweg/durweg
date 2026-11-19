@@ -8,11 +8,7 @@
 
 ## 💻 需要什么
 
-| 程序 | 在终端里检查 | 没有或版本较旧的话 |
-| :--- | :--- | :--- |
-| Codex CLI，已登录 | `codex --version` | [安装 Codex CLI](https://developers.openai.com/codex/cli) |
-| Python 3.9 或更新 | `python3 --version` | • Mac：`xcode-select --install`；低于 3.9：在“系统设置 → 通用 → 软件更新”里更新<br>• Debian 或 Ubuntu（WSL 也是）：`sudo apt-get install -y python3` |
-| git | `git --version` | • Mac：`xcode-select --install`<br>• Debian 或 Ubuntu（WSL 也是）：`sudo apt-get install -y git` |
+你需要已登录的 Codex CLI（在终端里运行 `codex --version`；[安装 Codex CLI](https://developers.openai.com/codex/cli)），以及 Python 和 git：见[系统要求](install_cn.md#-系统要求)。
 
 ## 🧭 安装
 
