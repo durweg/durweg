@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "workflow.json",
-  "description": "A workflow definition for wf. Validated by wf/workflow.py (the code is the reference).",
+  "description": "A workflow definition for durweg. Validated by durweg/workflow.py (the code is the reference).",
   "type": "object",
   "required": ["id", "title", "skill", "steps"],
   "properties": {
