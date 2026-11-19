@@ -226,7 +226,7 @@ def plugin_note(plugin):
 
 
 def follow_plugin(plugin, folders):
-    """For another agent plugin that ships Durweg workflows (e.g. durweg-todo, run from its hook at the
+    """For another agent plugin that ships Durweg workflows (e.g. other-plugin, run from its hook at the
     start of a session): register each folder under its folder name, or point the entry this plugin
     registered before at the folder (the plugin's folder changes with every version). An entry of that
     name from anywhere else (the user's own folder, a catalog, another plugin) is left alone.
