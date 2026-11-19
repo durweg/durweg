@@ -9,7 +9,6 @@ from pathlib import Path
 from .util import WfError, read_json, write_json
 
 STATE = ".wf/state.json"
-CHANGING = {"start", "begin", "propose", "confirm", "done", "reopen"}
 
 
 class Replay:
